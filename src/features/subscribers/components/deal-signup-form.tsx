@@ -56,8 +56,8 @@ export function DealSignupForm({ source = "homepage" }: DealSignupFormProps) {
         </p>
       ) : (
         <p className="text-xs leading-5 text-muted-foreground">
-          Ingen spam. Bara ett kuraterat urval när något faktiskt är värt din
-          uppmärksamhet.
+          Genom att skriva upp dig samtycker du till mailutskick med
+          erbjudanden och kampanjer från braerbjudanden.se.
         </p>
       )}
     </form>

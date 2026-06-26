@@ -159,6 +159,11 @@ export type Database = {
           email: string;
           status: "active" | "unsubscribed";
           source: string;
+          consent_given_at: string;
+          consent_text: string;
+          last_signup_at: string;
+          signup_count: number;
+          signup_sources: string[];
           created_at: string;
           updated_at: string;
         };
@@ -167,6 +172,11 @@ export type Database = {
           email: string;
           status?: "active" | "unsubscribed";
           source?: string;
+          consent_given_at?: string;
+          consent_text?: string;
+          last_signup_at?: string;
+          signup_count?: number;
+          signup_sources?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -175,7 +185,16 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      register_deal_subscriber: {
+        Args: {
+          p_email: string;
+          p_source?: string;
+          p_consent_text?: string;
+        };
+        Returns: Database["public"]["Tables"]["deal_subscribers"]["Row"];
+      };
+    };
     Enums: {
       offer_status: "draft" | "published" | "archived";
       discount_type: "percentage" | "fixed_amount";

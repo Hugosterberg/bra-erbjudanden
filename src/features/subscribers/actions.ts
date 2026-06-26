@@ -4,6 +4,9 @@ import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { subscriberSchema } from "./schemas";
 
+const newsletterConsentText =
+  "Jag vill få erbjudanden och kampanjer via e-post från braerbjudanden.se.";
+
 export type SubscriberActionState = {
   ok: boolean;
   message: string;
@@ -49,14 +52,11 @@ export async function subscribeToDealsAction(
     };
   }
 
-  const { error } = await supabase.from("deal_subscribers").upsert(
-    {
-      email: parsed.data.email.toLowerCase(),
-      source: parsed.data.source,
-      status: "active",
-    },
-    { onConflict: "email" },
-  );
+  const { error } = await supabase.rpc("register_deal_subscriber", {
+    p_email: parsed.data.email,
+    p_source: parsed.data.source,
+    p_consent_text: newsletterConsentText,
+  });
 
   if (error) {
     return {
@@ -67,6 +67,6 @@ export async function subscribeToDealsAction(
 
   return {
     ok: true,
-    message: "Klart! Du får ett urval när nya starka erbjudanden dyker upp.",
+    message: "Klart! Du är uppskriven för mailutskick med utvalda erbjudanden.",
   };
 }

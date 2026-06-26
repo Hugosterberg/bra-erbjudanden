@@ -307,7 +307,7 @@ export default async function HomePage() {
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               Skriv upp dig så kan braerbjudanden.se bli en mer personlig
               bevakning över tid. Första versionen samlar bara e-postadressen,
-              men datamodellen är redo för segmentering senare.
+              samtycke och var på sidan registreringen kom ifrån.
             </p>
             <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
               <p className="flex items-center gap-2">

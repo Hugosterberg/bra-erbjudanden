@@ -1,5 +1,6 @@
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
+import { NewsletterSignupPanel } from "@/features/subscribers/components/newsletter-signup-panel";
 import { createMetadata } from "@/shared/lib/seo";
 
 export const revalidate = 300;
@@ -24,6 +25,9 @@ export default async function OffersPage() {
         </p>
       </div>
       <OfferGrid offers={offers} />
+      <div className="mt-10">
+        <NewsletterSignupPanel source="offers-page" />
+      </div>
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
+import { NewsletterSignupPanel } from "@/features/subscribers/components/newsletter-signup-panel";
 import { createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 
@@ -27,6 +28,13 @@ export default async function DiscountCodesPage() {
         </p>
       </div>
       <OfferGrid offers={offers} />
+      <div className="mt-10">
+        <NewsletterSignupPanel
+          source="discount-codes-page"
+          title="Få nya rabattkoder innan du behöver leta"
+          text="Vi skickar ett kort urval när nya koder är värda din uppmärksamhet."
+        />
+      </div>
       <div className="mt-8">
         <AffiliateDisclosure />
       </div>
