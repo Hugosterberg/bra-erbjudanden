@@ -1,0 +1,69 @@
+# Arkitektur
+
+## Översikt
+
+Projektet ska byggas med Next.js App Router och vertical slice architecture.
+
+## Rekommenderad struktur
+
+```txt
+src/
+  app/
+    (public)/
+      page.tsx
+      offers/
+      stores/
+      categories/
+    admin/
+    api/
+  features/
+    offers/
+      components/
+      data/
+      schemas/
+      actions/
+      types.ts
+    stores/
+    categories/
+    clicks/
+    admin/
+  shared/
+    ui/
+    lib/
+    config/
+    types/
+  supabase/
+    client.ts
+    server.ts
+```
+
+## Data access
+
+- Lägg feature-specifik data access i respektive feature.
+- Supabase-klienter ska ligga centralt i `shared/lib` eller `supabase/`.
+- Server-side queries ska prioriteras för publika sidor.
+- Mutations ska valideras med Zod.
+
+## Auth
+
+Första versionen har endast admin.
+
+Använd Supabase Auth och skydda adminrutter. Lägg adminkontroll i middleware eller server-side guard.
+
+## Klickspårning
+
+Rekommenderad lösning:
+
+- Publik länk går till intern route, exempel `/go/[offerId]`.
+- Servern registrerar klick.
+- Servern redirectar till affiliate_url.
+
+Detta gör klickspårning robust och enkel.
+
+## SEO
+
+- Använd metadata i App Router.
+- Skapa SEO-vänliga slugs.
+- Använd server-renderade publika sidor.
+- Lägg till Open Graph metadata.
+- Förbered sitemap och robots.
