@@ -19,6 +19,7 @@ export async function findActiveOffers(options: {
   limit?: number;
   storeSlug?: string;
   categorySlug?: string;
+  redemptionType?: "discount_code" | "direct_link";
 } = {}) {
   const supabase = getSupabasePublicClient();
 
@@ -49,6 +50,10 @@ export async function findActiveOffers(options: {
 
   if (category) {
     query = query.eq("category_id", category.id);
+  }
+
+  if (options.redemptionType) {
+    query = query.eq("redemption_type", options.redemptionType);
   }
 
   if (options.limit) {

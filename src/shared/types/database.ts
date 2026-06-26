@@ -153,6 +153,26 @@ export type Database = {
           },
         ];
       };
+      deal_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          status: "active" | "unsubscribed";
+          source: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          status?: "active" | "unsubscribed";
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["deal_subscribers"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -161,6 +181,7 @@ export type Database = {
       discount_type: "percentage" | "fixed_amount";
       redemption_type: "discount_code" | "direct_link";
       entity_status: "active" | "inactive" | "archived";
+      subscriber_status: "active" | "unsubscribed";
     };
     CompositeTypes: Record<string, never>;
   };

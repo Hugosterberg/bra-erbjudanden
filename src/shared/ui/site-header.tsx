@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Menu, Search, ShieldCheck } from "lucide-react";
+import { BellRing, Menu, Search, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,8 @@ import { siteConfig } from "@/shared/config/site";
 
 const navigation = [
   { href: "/erbjudanden", label: "Erbjudanden" },
+  { href: "/rabattkoder", label: "Rabattkoder" },
+  { href: "/kampanjer", label: "Kampanjer" },
   { href: "/butiker", label: "Butiker" },
   { href: "/kategorier", label: "Kategorier" },
 ];
@@ -22,10 +24,15 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground">
+          <span className="flex size-9 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground shadow-sm">
             be
           </span>
-          <span>{siteConfig.name}</span>
+          <span className="leading-tight">
+            {siteConfig.name}
+            <span className="block text-xs font-normal text-muted-foreground">
+              Handplockade deals
+            </span>
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
@@ -41,6 +48,12 @@ export function SiteHeader() {
             <Link href="/erbjudanden">
               <Search className="size-4" />
               Hitta deal
+            </Link>
+          </Button>
+          <Button size="sm" asChild>
+            <Link href="/#bevakning">
+              <BellRing className="size-4" />
+              Bevaka
             </Link>
           </Button>
         </div>
@@ -65,6 +78,12 @@ export function SiteHeader() {
                 <Link href="/erbjudanden">
                   <ShieldCheck className="size-4" />
                   Se utvalda erbjudanden
+                </Link>
+              </Button>
+              <Button variant="outline" className="justify-start" asChild>
+                <Link href="/#bevakning">
+                  <BellRing className="size-4" />
+                  Få erbjudanden först
                 </Link>
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import { BarChart3, MousePointerClick, Store, Tags } from "lucide-react";
+import { BarChart3, MailCheck, MousePointerClick, Store, Tags } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/features/admin/auth";
@@ -6,6 +6,7 @@ import { AdminShell } from "@/features/admin/components/admin-shell";
 import { findAdminCategories } from "@/features/categories/queries";
 import { findAdminOffers } from "@/features/offers/queries";
 import { findAdminStores } from "@/features/stores/queries";
+import { findSubscriberStats } from "@/features/subscribers/queries";
 import { createMetadata } from "@/shared/lib/seo";
 
 export const metadata = createMetadata({
@@ -16,10 +17,11 @@ export const metadata = createMetadata({
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const [offers, stores, categories] = await Promise.all([
+  const [offers, stores, categories, subscriberStats] = await Promise.all([
     findAdminOffers(),
     findAdminStores(),
     findAdminCategories(),
+    findSubscriberStats(),
   ]);
   const clicks = offers.reduce((sum, offer) => sum + (offer.click_count ?? 0), 0);
 
@@ -28,6 +30,7 @@ export default async function AdminDashboardPage() {
     { label: "Butiker", value: stores.length, icon: Store },
     { label: "Kategorier", value: categories.length, icon: BarChart3 },
     { label: "Klick", value: clicks, icon: MousePointerClick },
+    { label: "Prenumeranter", value: subscriberStats.activeCount, icon: MailCheck },
   ];
 
   return (
@@ -39,7 +42,7 @@ export default async function AdminDashboardPage() {
             Enkel status för innehåll, ranking och klickmätning.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (

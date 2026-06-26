@@ -5,17 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
-import { formatDiscount, formatOfferValidity } from "../format";
+import { formatDiscount, formatOfferValidity, formatRedemptionType } from "../format";
 import type { OfferWithRelations } from "../types";
 
 export function OfferCard({ offer }: { offer: OfferWithRelations }) {
+  const ctaLabel = offer.redemption_type === "discount_code" ? "Hämta rabattkod" : "Gå till deal";
+
   return (
-    <Card className="h-full gap-4 rounded-lg border-border/80 shadow-none transition hover:border-foreground/20">
+    <Card className="h-full gap-4 overflow-hidden rounded-lg border-border/80 shadow-none transition hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-sm">
       <CardHeader className="gap-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               {offer.is_featured ? <Badge>Utvald</Badge> : null}
+              <Badge variant="outline">{formatRedemptionType(offer.redemption_type)}</Badge>
               {offer.category ? <Badge variant="secondary">{offer.category.name}</Badge> : null}
             </div>
             <Link href={`/erbjudanden/${offer.slug}`} className="block">
@@ -24,9 +27,9 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
               </h2>
             </Link>
           </div>
-          <div className="rounded-md border bg-muted px-3 py-2 text-center">
+          <div className="rounded-md border bg-accent px-3 py-2 text-center text-accent-foreground">
             <p className="text-xl font-semibold">{formatDiscount(offer.discount_type, offer.discount_value)}</p>
-            <p className="text-[11px] uppercase text-muted-foreground">rabatt</p>
+            <p className="text-[11px] uppercase">rabatt</p>
           </div>
         </div>
       </CardHeader>
@@ -40,8 +43,9 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
           </span>
         </div>
         {offer.discount_code ? (
-          <div className="flex items-center justify-between rounded-md border bg-muted/50 px-3 py-2">
-            <span className="font-mono text-sm">{offer.discount_code}</span>
+          <div className="flex items-center justify-between rounded-md border border-dashed bg-muted/50 px-3 py-2">
+            <span className="text-xs text-muted-foreground">Kod</span>
+            <span className="font-mono text-sm font-medium">{offer.discount_code}</span>
             <Copy className="size-4 text-muted-foreground" aria-hidden="true" />
           </div>
         ) : null}
@@ -49,7 +53,7 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
       <CardFooter className="mt-auto">
         <Button asChild className="w-full">
           <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
-            Visa erbjudande
+            {ctaLabel}
             <ArrowUpRight className="size-4" />
           </Link>
         </Button>
