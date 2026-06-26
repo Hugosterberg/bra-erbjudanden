@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { siteConfig } from "@/shared/config/site";
+import { createAbsoluteUrl } from "@/shared/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/admin", "/go"],
     },
-    sitemap: `${siteConfig.url}/sitemap.xml`,
+    sitemap: createAbsoluteUrl("/sitemap.xml"),
   };
 }

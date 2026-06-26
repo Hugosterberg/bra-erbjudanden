@@ -6,7 +6,7 @@ import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
 import { findActiveCategories } from "@/features/categories/queries";
 import { findActiveStores } from "@/features/stores/queries";
-import { createJsonLd, createMetadata } from "@/shared/lib/seo";
+import { createAbsoluteUrl, createJsonLd, createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 
 export const revalidate = 300;
@@ -113,10 +113,10 @@ export default async function HomePage() {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "braerbjudanden.se",
-          url: "https://braerbjudanden.se",
+          url: createAbsoluteUrl("/"),
           potentialAction: {
             "@type": "SearchAction",
-            target: "https://braerbjudanden.se/erbjudanden?q={search_term_string}",
+            target: createAbsoluteUrl("/erbjudanden?q={search_term_string}"),
             "query-input": "required name=search_term_string",
           },
         })}

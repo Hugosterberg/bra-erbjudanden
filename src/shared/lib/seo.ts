@@ -9,7 +9,7 @@ type SeoInput = {
 };
 
 export function createMetadata({ title, description, path = "/" }: SeoInput): Metadata {
-  const url = new URL(path, siteConfig.url).toString();
+  const url = createAbsoluteUrl(path);
   const fullTitle = title === siteConfig.name ? title : `${title} | ${siteConfig.name}`;
 
   return {
@@ -27,6 +27,10 @@ export function createMetadata({ title, description, path = "/" }: SeoInput): Me
       type: "website",
     },
   };
+}
+
+export function createAbsoluteUrl(path = "/") {
+  return new URL(path, siteConfig.url).toString();
 }
 
 export function createJsonLd(data: Record<string, unknown>) {

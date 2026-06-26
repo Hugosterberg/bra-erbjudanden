@@ -6,17 +6,17 @@ A modern Swedish affiliate platform built with Next.js, TypeScript and Supabase.
 
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
 Open `http://localhost:3000`.
 
-Required Supabase variables:
+Configure these variables in `.env.local`:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` for server-side click inserts and admin CRUD
+- `SUPABASE_DB_PASSWORD` for Supabase CLI migration commands
 - `CLICK_HASH_SALT` for privacy-conscious IP hashing
 - `ADMIN_PASSWORD` for password-only admin login at `/admin`
 
@@ -29,6 +29,34 @@ categories, clicks or admin-managed content.
 
 Apply the SQL migration in `supabase/migrations/20260626120000_initial_schema.sql`
 to create stores, categories, offers, click events, indexes and RLS policies.
+
+## Supabase CLI
+
+The project is initialized for Supabase CLI commands. The linked remote project
+is `bra-erbjudanden`.
+
+Add your database password to `.env.local`:
+
+```env
+SUPABASE_DB_PASSWORD=
+```
+
+You can find it in Supabase Dashboard under database connection settings. If you
+do not know it, reset the database password in Supabase and update `.env.local`.
+
+Run:
+
+```bash
+npm run db:list
+npm run db:push
+```
+
+For any other Supabase command:
+
+```bash
+npm run supabase -- status
+npm run supabase -- db pull
+```
 
 ## Purpose
 
