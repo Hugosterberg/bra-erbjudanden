@@ -18,8 +18,21 @@ export const metadata = createMetadata({
   path: "/admin/login",
 });
 
+function getErrorMessage(error?: string) {
+  if (error === "missing-password") {
+    return "ADMIN_PASSWORD saknas i miljövariablerna.";
+  }
+
+  if (error === "invalid") {
+    return "Fel lösenord.";
+  }
+
+  return null;
+}
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
+  const errorMessage = getErrorMessage(error);
 
   return (
     <main className="grid min-h-screen place-items-center bg-muted/30 px-4">
@@ -29,20 +42,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </CardHeader>
         <CardContent>
           <form action={signInAction} className="grid gap-5">
-            {error ? (
+            {errorMessage ? (
               <Alert variant="destructive">
                 <AlertCircle className="size-4" />
-                <AlertDescription>
-                  {error === "missing-config"
-                    ? "Supabase-miljövariabler saknas."
-                    : "Fel e-post eller lösenord, eller så saknas adminprofil."}
-                </AlertDescription>
+                <AlertDescription>{errorMessage}</AlertDescription>
               </Alert>
             ) : null}
-            <div className="grid gap-2">
-              <Label htmlFor="email">E-post</Label>
-              <Input id="email" name="email" type="email" autoComplete="email" required />
-            </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Lösenord</Label>
               <Input

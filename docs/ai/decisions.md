@@ -7,7 +7,8 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - Kod och mappar namnges på engelska.
 - UI och produktcopy skrivs på svenska.
 - Next.js App Router används.
-- Supabase används för databas och admin-auth.
+- Supabase används som databas.
+- Admininloggning använder ett separat miljölösenord.
 - Vercel används för hosting.
 - Vertical slice architecture används.
 - Admin styr ranking manuellt.
@@ -23,4 +24,10 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - Lägre `rank_position` visas högre upp. Sortering är: `is_featured` först, därefter lägst `rank_position`, därefter senaste uppdatering.
 - Klickspårning görs via `/go/[offerId]`. Klick skrivs med server-side service role client när `SUPABASE_SERVICE_ROLE_KEY` finns; redirect fungerar även utan nyckeln.
 - Publika sidor returnerar tomma states när Supabase-miljövariabler saknas. Det är inte mockdata, utan ett tydligt lokalt läge tills riktiga Supabase-uppgifter konfigureras.
-- Admin skyddas server-side via Supabase Auth plus `admin_profiles`. Middleware/proxy används inte som enda auth-lager.
+- Admin skyddas server-side med ett lösenord i `ADMIN_PASSWORD` och en httpOnly-sessioncookie. Supabase service role används endast server-side för admin-CRUD efter lösenordsguard.
+
+## Data Persistence
+
+- All persistent application data ska sparas i Supabase via server-side queries/actions.
+- Browser storage som `localStorage`, `sessionStorage` och IndexedDB ska inte användas för erbjudanden, butiker, kategorier, klick eller admininnehåll.
+- Admin-sessionen får använda en httpOnly-cookie eftersom den endast innehåller ett sessionsbevis, inte applikationsdata.

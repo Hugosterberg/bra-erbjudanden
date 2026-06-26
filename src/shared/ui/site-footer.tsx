@@ -20,9 +20,6 @@ export function SiteFooter() {
           <Link href="/kategorier" className="hover:text-foreground">
             Kategorier
           </Link>
-          <Link href="/admin" className="hover:text-foreground">
-            Admin
-          </Link>
         </nav>
       </div>
     </footer>

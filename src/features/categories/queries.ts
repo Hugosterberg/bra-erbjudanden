@@ -1,5 +1,5 @@
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
-import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import type { Category } from "./types";
 
@@ -37,7 +37,7 @@ export async function findActiveCategoryBySlug(slug: string): Promise<Category |
 }
 
 export async function findAdminCategories(): Promise<Category[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
     return [];
@@ -52,7 +52,7 @@ export async function findAdminCategories(): Promise<Category[]> {
 }
 
 export async function findAdminCategoryById(id: string): Promise<Category | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
     return null;

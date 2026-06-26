@@ -1,7 +1,7 @@
 import { findActiveCategoryBySlug } from "@/features/categories/queries";
 import { findActiveStoreBySlug } from "@/features/stores/queries";
+import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
-import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
 
 import type { OfferRedirectTarget, OfferWithRelations } from "./types";
 
@@ -95,7 +95,7 @@ export async function findOfferRedirectTarget(id: string): Promise<OfferRedirect
 }
 
 export async function findAdminOffers() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
     return [];
@@ -121,7 +121,7 @@ export async function findAdminOffers() {
 }
 
 export async function findAdminOfferById(id: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
     return null;

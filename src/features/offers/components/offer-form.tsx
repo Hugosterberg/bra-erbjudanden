@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -54,6 +54,7 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
       description: offer?.description ?? "",
       store_id: offer?.store_id ?? "",
       category_id: offer?.category_id ?? "",
+      redemption_type: offer?.redemption_type ?? (offer?.discount_code ? "discount_code" : "direct_link"),
       discount_type: offer?.discount_type ?? "percentage",
       discount_value: offer?.discount_value ?? 10,
       discount_code: offer?.discount_code ?? "",
@@ -95,6 +96,10 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
   }
 
   const errors = form.formState.errors;
+  const redemptionType = useWatch({
+    control: form.control,
+    name: "redemption_type",
+  });
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
@@ -144,6 +149,9 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
               </Select>
             )}
           />
+          {errors.store_id ? (
+            <p className="text-sm text-destructive">{errors.store_id.message}</p>
+          ) : null}
         </div>
 
         <div className="grid gap-2">
@@ -152,7 +160,10 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
             control={form.control}
             name="category_id"
             render={({ field }) => (
-              <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
+              <Select
+                value={field.value || "none"}
+                onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Välj kategori" />
                 </SelectTrigger>
@@ -172,7 +183,26 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="grid gap-2">
-          <Label>Rabatttyp</Label>
+          <Label>Erbjudandetyp</Label>
+          <Controller
+            control={form.control}
+            name="redemption_type"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="discount_code">Rabattkod</SelectItem>
+                  <SelectItem value="direct_link">Direktlänk</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label>Rabatten anges i</Label>
           <Controller
             control={form.control}
             name="discount_type"
@@ -183,25 +213,40 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="percentage">Procent</SelectItem>
-                  <SelectItem value="fixed_amount">Fast belopp</SelectItem>
+                  <SelectItem value="fixed_amount">Kronor</SelectItem>
                 </SelectContent>
               </Select>
             )}
           />
         </div>
+
         <div className="grid gap-2">
           <Label htmlFor="discount_value">Rabattvärde</Label>
           <Input id="discount_value" type="number" step="0.01" {...form.register("discount_value")} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="discount_code">Rabattkod</Label>
-          <Input id="discount_code" {...form.register("discount_code")} />
+          {errors.discount_value ? (
+            <p className="text-sm text-destructive">{errors.discount_value.message}</p>
+          ) : null}
         </div>
       </div>
 
+      {redemptionType === "discount_code" ? (
+        <div className="grid gap-2">
+          <Label htmlFor="discount_code">Rabattkod</Label>
+          <Input id="discount_code" {...form.register("discount_code")} />
+          {errors.discount_code ? (
+            <p className="text-sm text-destructive">{errors.discount_code.message}</p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid gap-2">
-        <Label htmlFor="affiliate_url">Affiliatelänk</Label>
+        <Label htmlFor="affiliate_url">
+          {redemptionType === "discount_code" ? "Länk efter kopierad kod" : "Direktlänk"}
+        </Label>
         <Input id="affiliate_url" type="url" {...form.register("affiliate_url")} />
+        {errors.affiliate_url ? (
+          <p className="text-sm text-destructive">{errors.affiliate_url.message}</p>
+        ) : null}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -212,6 +257,9 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
         <div className="grid gap-2">
           <Label htmlFor="ends_at">Slutdatum</Label>
           <Input id="ends_at" type="datetime-local" {...form.register("ends_at")} />
+          {errors.ends_at ? (
+            <p className="text-sm text-destructive">{errors.ends_at.message}</p>
+          ) : null}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
-import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import type { Store } from "./types";
 
@@ -37,7 +37,7 @@ export async function findActiveStoreBySlug(slug: string): Promise<Store | null>
 }
 
 export async function findAdminStores(): Promise<Store[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
     return [];
@@ -52,7 +52,7 @@ export async function findAdminStores(): Promise<Store[]> {
 }
 
 export async function findAdminStoreById(id: string): Promise<Store | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
     return null;

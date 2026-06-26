@@ -1,35 +1,48 @@
 "use server";
 
+import { createHash, timingSafeEqual } from "node:crypto";
+
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
+const adminSessionCookie = "braerbjudanden_admin_session";
+
+function getExpectedSessionToken() {
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!password) {
+    return null;
+  }
+
+  return createHash("sha256").update(`admin-session:${password}`).digest("hex");
+}
+
+function valuesMatch(input: string, expected: string) {
+  const inputBuffer = Buffer.from(input);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (inputBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(inputBuffer, expectedBuffer);
+}
 
 export async function getCurrentAdmin() {
-  const supabase = await createSupabaseServerClient();
+  const expectedToken = getExpectedSessionToken();
 
-  if (!supabase) {
+  if (!expectedToken) {
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(adminSessionCookie)?.value;
 
-  if (!user) {
+  if (!sessionToken || !valuesMatch(sessionToken, expectedToken)) {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from("admin_profiles")
-    .select("id, email, role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) {
-    return null;
-  }
-
-  return profile;
+  return { role: "admin" as const };
 }
 
 export async function requireAdmin() {
@@ -43,29 +56,32 @@ export async function requireAdmin() {
 }
 
 export async function signInAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const supabase = await createSupabaseServerClient();
+  const expectedPassword = process.env.ADMIN_PASSWORD;
 
-  if (!supabase) {
-    redirect("/admin/login?error=missing-config");
+  if (!expectedPassword) {
+    redirect("/admin/login?error=missing-password");
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error) {
+  if (!valuesMatch(password, expectedPassword)) {
     redirect("/admin/login?error=invalid");
   }
+
+  const cookieStore = await cookies();
+  cookieStore.set(adminSessionCookie, getExpectedSessionToken() ?? "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 12,
+  });
 
   redirect("/admin");
 }
 
 export async function signOutAction() {
-  const supabase = await createSupabaseServerClient();
-
-  if (supabase) {
-    await supabase.auth.signOut();
-  }
+  const cookieStore = await cookies();
+  cookieStore.delete(adminSessionCookie);
 
   redirect("/admin/login");
 }

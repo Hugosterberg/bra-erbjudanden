@@ -9,30 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_profiles: {
-        Row: {
-          id: string;
-          email: string;
-          role: "admin";
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          role?: "admin";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          role?: "admin";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       stores: {
         Row: {
           id: string;
@@ -89,6 +65,7 @@ export type Database = {
           description: string;
           store_id: string;
           category_id: string | null;
+          redemption_type: "discount_code" | "direct_link";
           discount_type: "percentage" | "fixed_amount";
           discount_value: number;
           discount_code: string | null;
@@ -108,6 +85,7 @@ export type Database = {
           description: string;
           store_id: string;
           category_id?: string | null;
+          redemption_type?: "discount_code" | "direct_link";
           discount_type: "percentage" | "fixed_amount";
           discount_value: number;
           discount_code?: string | null;
@@ -177,17 +155,12 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: {
-      is_admin: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-    };
+    Functions: Record<string, never>;
     Enums: {
       offer_status: "draft" | "published" | "archived";
       discount_type: "percentage" | "fixed_amount";
+      redemption_type: "discount_code" | "direct_link";
       entity_status: "active" | "inactive" | "archived";
-      admin_role: "admin";
     };
     CompositeTypes: Record<string, never>;
   };

@@ -16,12 +16,19 @@ Required Supabase variables:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` for server-side click inserts
+- `SUPABASE_SERVICE_ROLE_KEY` for server-side click inserts and admin CRUD
 - `CLICK_HASH_SALT` for privacy-conscious IP hashing
+- `ADMIN_PASSWORD` for password-only admin login at `/admin`
+
+## Data persistence
+
+All persistent application data is stored in Supabase. Admin forms submit through
+server actions, and click tracking writes to `click_events` server-side. Do not
+use `localStorage`, `sessionStorage` or IndexedDB for offers, stores,
+categories, clicks or admin-managed content.
 
 Apply the SQL migration in `supabase/migrations/20260626120000_initial_schema.sql`
-to create stores, categories, offers, click events, admin profiles, indexes and RLS
-policies.
+to create stores, categories, offers, click events, indexes and RLS policies.
 
 ## Purpose
 

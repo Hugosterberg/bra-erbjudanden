@@ -10,22 +10,15 @@ begin
     create type public.discount_type as enum ('percentage', 'fixed_amount');
   end if;
 
+  if not exists (select 1 from pg_type where typname = 'redemption_type') then
+    create type public.redemption_type as enum ('discount_code', 'direct_link');
+  end if;
+
   if not exists (select 1 from pg_type where typname = 'entity_status') then
     create type public.entity_status as enum ('active', 'inactive', 'archived');
   end if;
 
-  if not exists (select 1 from pg_type where typname = 'admin_role') then
-    create type public.admin_role as enum ('admin');
-  end if;
 end $$;
-
-create table if not exists public.admin_profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text not null,
-  role public.admin_role not null default 'admin',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
 
 create table if not exists public.stores (
   id uuid primary key default gen_random_uuid(),
@@ -56,6 +49,7 @@ create table if not exists public.offers (
   description text not null,
   store_id uuid not null references public.stores(id) on delete restrict,
   category_id uuid references public.categories(id) on delete set null,
+  redemption_type public.redemption_type not null default 'direct_link',
   discount_type public.discount_type not null,
   discount_value numeric(10, 2) not null,
   discount_code text,
@@ -69,7 +63,11 @@ create table if not exists public.offers (
   updated_at timestamptz not null default now(),
   constraint offers_discount_value_positive check (discount_value > 0),
   constraint offers_rank_position_positive check (rank_position >= 0),
-  constraint offers_dates_order check (ends_at is null or starts_at is null or ends_at > starts_at)
+  constraint offers_dates_order check (ends_at is null or starts_at is null or ends_at > starts_at),
+  constraint offers_discount_code_required check (
+    redemption_type = 'direct_link'
+    or nullif(btrim(discount_code), '') is not null
+  )
 );
 
 create table if not exists public.click_events (
@@ -91,11 +89,6 @@ begin
   return new;
 end;
 $$;
-
-drop trigger if exists admin_profiles_set_updated_at on public.admin_profiles;
-create trigger admin_profiles_set_updated_at
-before update on public.admin_profiles
-for each row execute function public.set_updated_at();
 
 drop trigger if exists stores_set_updated_at on public.stores;
 create trigger stores_set_updated_at
@@ -124,44 +117,11 @@ create index if not exists offers_public_category_rank_idx on public.offers (cat
   where status = 'published';
 create index if not exists click_events_offer_clicked_at_idx on public.click_events (offer_id, clicked_at desc);
 create index if not exists click_events_store_clicked_at_idx on public.click_events (store_id, clicked_at desc);
-create index if not exists admin_profiles_role_idx on public.admin_profiles (role);
 
-alter table public.admin_profiles enable row level security;
 alter table public.stores enable row level security;
 alter table public.categories enable row level security;
 alter table public.offers enable row level security;
 alter table public.click_events enable row level security;
-
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.admin_profiles
-    where id = (select auth.uid())
-      and role = 'admin'
-  );
-$$;
-
-drop policy if exists "Admins can manage admin profiles" on public.admin_profiles;
-create policy "Admins can manage admin profiles"
-on public.admin_profiles
-for all
-to authenticated
-using ((select public.is_admin()))
-with check ((select public.is_admin()));
-
-drop policy if exists "Admins can manage stores" on public.stores;
-create policy "Admins can manage stores"
-on public.stores
-for all
-to authenticated
-using ((select public.is_admin()))
-with check ((select public.is_admin()));
 
 drop policy if exists "Active stores are public" on public.stores;
 create policy "Active stores are public"
@@ -170,28 +130,12 @@ for select
 to anon, authenticated
 using (status = 'active');
 
-drop policy if exists "Admins can manage categories" on public.categories;
-create policy "Admins can manage categories"
-on public.categories
-for all
-to authenticated
-using ((select public.is_admin()))
-with check ((select public.is_admin()));
-
 drop policy if exists "Active categories are public" on public.categories;
 create policy "Active categories are public"
 on public.categories
 for select
 to anon, authenticated
 using (status = 'active');
-
-drop policy if exists "Admins can manage offers" on public.offers;
-create policy "Admins can manage offers"
-on public.offers
-for all
-to authenticated
-using ((select public.is_admin()))
-with check ((select public.is_admin()));
 
 drop policy if exists "Published active offers are public" on public.offers;
 create policy "Published active offers are public"
@@ -203,10 +147,3 @@ using (
   and (starts_at is null or starts_at <= now())
   and (ends_at is null or ends_at > now())
 );
-
-drop policy if exists "Admins can read click events" on public.click_events;
-create policy "Admins can read click events"
-on public.click_events
-for select
-to authenticated
-using ((select public.is_admin()));

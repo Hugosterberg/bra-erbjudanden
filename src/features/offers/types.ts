@@ -5,6 +5,7 @@ import type { Tables } from "@/shared/types/database";
 export type Offer = Tables<"offers">;
 export type OfferStatus = Offer["status"];
 export type DiscountType = Offer["discount_type"];
+export type RedemptionType = Offer["redemption_type"];
 
 export type OfferWithRelations = Offer & {
   store: Pick<Store, "id" | "name" | "slug" | "logo_url" | "website_url"> | null;

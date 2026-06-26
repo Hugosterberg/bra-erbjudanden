@@ -43,9 +43,6 @@ export function SiteHeader() {
               Hitta deal
             </Link>
           </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/admin">Admin</Link>
-          </Button>
         </div>
 
         <Sheet>

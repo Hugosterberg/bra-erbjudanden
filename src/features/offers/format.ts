@@ -1,4 +1,4 @@
-import type { DiscountType } from "./types";
+import type { DiscountType, RedemptionType } from "./types";
 
 export function formatDiscount(type: DiscountType, value: number) {
   if (type === "percentage") {
@@ -18,4 +18,12 @@ export function formatOfferValidity(date: string | null) {
     month: "short",
     year: "numeric",
   }).format(new Date(date));
+}
+
+export function formatRedemptionType(type: RedemptionType) {
+  if (type === "discount_code") {
+    return "Rabattkod";
+  }
+
+  return "Direktlänk";
 }

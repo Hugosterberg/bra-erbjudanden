@@ -8,7 +8,7 @@ Skapa tabeller för:
 - stores
 - categories
 - click_events
-- admin_profiles eller user_roles vid behov
+- Ingen adminrollstabell behövs i första versionen eftersom admin skyddas med `ADMIN_PASSWORD`
 
 ## RLS
 
@@ -16,7 +16,7 @@ Aktivera Row Level Security.
 
 Publikt ska kunna läsa publicerade erbjudanden, butiker och kategorier.
 
-Endast admin ska kunna skapa, uppdatera och arkivera erbjudanden.
+Endast server-side adminflöden efter lösenordsguard ska kunna skapa, uppdatera och arkivera erbjudanden.
 
 Click events ska kunna skapas via säker serverroute, inte fritt manipuleras från klienten.
 

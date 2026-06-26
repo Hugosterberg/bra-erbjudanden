@@ -48,7 +48,9 @@ src/
 
 Första versionen har endast admin.
 
-Använd Supabase Auth och skydda adminrutter. Lägg adminkontroll i middleware eller server-side guard.
+Admin nås endast via `/admin` och skyddas server-side med ett lösenord från
+miljövariabeln `ADMIN_PASSWORD`. Efter korrekt lösenord sätts en httpOnly-cookie.
+Admin-CRUD använder Supabase service role server-side efter lösenordsguard.
 
 ## Klickspårning
 

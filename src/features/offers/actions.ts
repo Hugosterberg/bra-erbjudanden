@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/features/admin/auth";
-import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { normalizeOfferInput, offerSchema } from "./schemas";
 
@@ -19,6 +19,7 @@ function offerFormDataToInput(formData: FormData) {
     description: String(formData.get("description") ?? ""),
     store_id: String(formData.get("store_id") ?? ""),
     category_id: String(formData.get("category_id") ?? ""),
+    redemption_type: String(formData.get("redemption_type") ?? "direct_link"),
     discount_type: String(formData.get("discount_type") ?? "percentage"),
     discount_value: String(formData.get("discount_value") ?? "0"),
     discount_code: String(formData.get("discount_code") ?? ""),
@@ -42,7 +43,7 @@ function revalidateOfferSurfaces() {
 
 export async function createOfferAction(formData: FormData): Promise<OfferActionState> {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   const parsed = offerSchema.safeParse(offerFormDataToInput(formData));
 
   if (!supabase || !parsed.success) {
@@ -65,7 +66,7 @@ export async function updateOfferAction(
   formData: FormData,
 ): Promise<OfferActionState> {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   const parsed = offerSchema.safeParse(offerFormDataToInput(formData));
 
   if (!supabase || !parsed.success) {
@@ -88,7 +89,7 @@ export async function updateOfferAction(
 
 export async function publishOfferAction(id: string) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (supabase) {
     await supabase.from("offers").update({ status: "published" }).eq("id", id);
@@ -99,7 +100,7 @@ export async function publishOfferAction(id: string) {
 
 export async function archiveOfferAction(id: string) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
 
   if (supabase) {
     await supabase.from("offers").update({ status: "archived" }).eq("id", id);

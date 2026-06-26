@@ -15,7 +15,7 @@ import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
 import { StatusBadge } from "@/features/admin/components/status-badge";
 import { archiveOfferAction, publishOfferAction } from "@/features/offers/actions";
-import { formatDiscount } from "@/features/offers/format";
+import { formatDiscount, formatRedemptionType } from "@/features/offers/format";
 import { findAdminOffers } from "@/features/offers/queries";
 import { createMetadata } from "@/shared/lib/seo";
 
@@ -53,6 +53,7 @@ export default async function AdminOffersPage() {
                 <TableRow>
                   <TableHead>Titel</TableHead>
                   <TableHead>Butik</TableHead>
+                  <TableHead>Typ</TableHead>
                   <TableHead>Rabatt</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Ranking</TableHead>
@@ -65,6 +66,7 @@ export default async function AdminOffersPage() {
                   <TableRow key={offer.id}>
                     <TableCell className="font-medium">{offer.title}</TableCell>
                     <TableCell>{offer.store?.name ?? "-"}</TableCell>
+                    <TableCell>{formatRedemptionType(offer.redemption_type)}</TableCell>
                     <TableCell>{formatDiscount(offer.discount_type, offer.discount_value)}</TableCell>
                     <TableCell>
                       <StatusBadge status={offer.status} />

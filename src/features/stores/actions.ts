@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/features/admin/auth";
-import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { normalizeStoreInput, storeSchema } from "./schemas";
 
@@ -25,7 +25,7 @@ function storeFormDataToInput(formData: FormData) {
 
 export async function createStoreAction(formData: FormData): Promise<StoreActionState> {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   const parsed = storeSchema.safeParse(storeFormDataToInput(formData));
 
   if (!supabase || !parsed.success) {
@@ -50,7 +50,7 @@ export async function updateStoreAction(
   formData: FormData,
 ): Promise<StoreActionState> {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   const parsed = storeSchema.safeParse(storeFormDataToInput(formData));
 
   if (!supabase || !parsed.success) {

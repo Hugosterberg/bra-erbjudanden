@@ -9,6 +9,7 @@ export const offerSchema = z
     description: z.string().trim().min(10, "Beskrivningen behöver vara tydligare"),
     store_id: z.string().uuid("Välj butik"),
     category_id: z.string().uuid("Välj kategori").optional().or(z.literal("")),
+    redemption_type: z.enum(["discount_code", "direct_link"]),
     discount_type: z.enum(["percentage", "fixed_amount"]),
     discount_value: z.coerce.number().positive("Rabatten måste vara större än 0"),
     discount_code: z.string().trim().optional(),
@@ -28,6 +29,13 @@ export const offerSchema = z
       message: "Slutdatum måste vara efter startdatum",
       path: ["ends_at"],
     },
+  )
+  .refine(
+    (value) => value.redemption_type === "direct_link" || Boolean(value.discount_code?.trim()),
+    {
+      message: "Rabattkod krävs när erbjudandetypen är rabattkod",
+      path: ["discount_code"],
+    },
   );
 
 export type OfferInput = z.infer<typeof offerSchema>;
@@ -39,9 +47,10 @@ export function normalizeOfferInput(input: OfferInput) {
     description: input.description,
     store_id: input.store_id,
     category_id: input.category_id || null,
+    redemption_type: input.redemption_type,
     discount_type: input.discount_type,
     discount_value: input.discount_value,
-    discount_code: input.discount_code || null,
+    discount_code: input.redemption_type === "discount_code" ? input.discount_code || null : null,
     affiliate_url: input.affiliate_url,
     starts_at: input.starts_at ? new Date(input.starts_at).toISOString() : null,
     ends_at: input.ends_at ? new Date(input.ends_at).toISOString() : null,

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/features/admin/auth";
-import { createSupabaseServerClient } from "@/shared/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { categorySchema, normalizeCategoryInput } from "./schemas";
 
@@ -23,7 +23,7 @@ function categoryFormDataToInput(formData: FormData) {
 
 export async function createCategoryAction(formData: FormData): Promise<CategoryActionState> {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   const parsed = categorySchema.safeParse(categoryFormDataToInput(formData));
 
   if (!supabase || !parsed.success) {
@@ -48,7 +48,7 @@ export async function updateCategoryAction(
   formData: FormData,
 ): Promise<CategoryActionState> {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   const parsed = categorySchema.safeParse(categoryFormDataToInput(formData));
 
   if (!supabase || !parsed.success) {
