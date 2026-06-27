@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowUpRight, Copy, Store, Timer } from "lucide-react";
+import { ArrowUpRight, Store, Timer } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { CouponCodeCopyButton } from "./coupon-code-copy-button";
 import { formatDiscount, formatOfferValidity, formatRedemptionType } from "../format";
 import type { OfferWithRelations } from "../types";
 
@@ -63,10 +64,10 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
                     {formatOfferValidity(offer.ends_at)}
                   </span>
                   {offer.discount_code ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-dashed bg-background px-2 py-1 font-mono text-xs text-foreground">
-                      {offer.discount_code}
-                      <Copy className="size-3.5 text-muted-foreground" aria-hidden="true" />
-                    </span>
+                    <CouponCodeCopyButton
+                      code={offer.discount_code}
+                      className="max-w-full py-1 text-xs sm:max-w-64"
+                    />
                   ) : null}
                 </div>
               </div>

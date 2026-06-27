@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ArrowUpRight, Copy, Timer } from "lucide-react";
+import { ArrowUpRight, Timer } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
+import { CouponCodeCopyButton } from "./coupon-code-copy-button";
 import { formatDiscount, formatOfferValidity, formatRedemptionType } from "../format";
 import type { OfferWithRelations } from "../types";
 
@@ -43,10 +44,9 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
           </span>
         </div>
         {offer.discount_code ? (
-          <div className="flex items-center justify-between rounded-md border border-dashed bg-muted/50 px-3 py-2">
+          <div className="space-y-1.5">
             <span className="text-xs text-muted-foreground">Kod</span>
-            <span className="font-mono text-sm font-medium">{offer.discount_code}</span>
-            <Copy className="size-4 text-muted-foreground" aria-hidden="true" />
+            <CouponCodeCopyButton code={offer.discount_code} className="bg-muted/50 px-3 py-2" />
           </div>
         ) : null}
       </CardContent>

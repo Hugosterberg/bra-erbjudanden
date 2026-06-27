@@ -5,6 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { CouponCodeCopyButton } from "@/features/offers/components/coupon-code-copy-button";
 import { formatDiscount, formatOfferValidity } from "@/features/offers/format";
 import { findActiveOfferBySlug } from "@/features/offers/queries";
 import { createJsonLd, createMetadata } from "@/shared/lib/seo";
@@ -77,9 +78,7 @@ export default async function OfferPage({ params }: OfferPageProps) {
           {offer.discount_code ? (
             <div>
               <p className="text-sm text-muted-foreground">Rabattkod</p>
-              <p className="mt-2 rounded-md border bg-muted px-3 py-2 font-mono">
-                {offer.discount_code}
-              </p>
+              <CouponCodeCopyButton code={offer.discount_code} className="mt-2 bg-muted px-3 py-2" />
             </div>
           ) : null}
           <Button asChild className="w-full">

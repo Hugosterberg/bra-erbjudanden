@@ -7,8 +7,8 @@ import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 export function SiteFooter() {
   return (
     <footer className="border-t bg-muted/35">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-6">
+      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_300px]">
+        <div className="space-y-5">
           <div className="max-w-xl space-y-3">
             <p className="font-semibold">braerbjudanden.se</p>
             <AffiliateDisclosure />
@@ -45,14 +45,14 @@ export function SiteFooter() {
             </Link>
           </nav>
         </div>
-        <div className="rounded-lg border bg-card p-5 shadow-sm">
-          <h2 className="font-semibold">Få de bästa erbjudandena</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Ett kort urval när något nytt är värt att känna till.
-          </p>
-          <div className="mt-4">
-            <DealSignupForm source="footer" />
+        <div className="space-y-3 lg:pt-1">
+          <div>
+            <h2 className="text-sm font-semibold">Få bra deals</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Kort urval när något är värt att veta.
+            </p>
           </div>
+          <DealSignupForm source="footer" variant="compact" />
         </div>
       </div>
     </footer>
