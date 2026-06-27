@@ -1,30 +1,68 @@
 "use client";
 
-import { useActionState } from "react";
+import { type FormEvent, useState } from "react";
 import { MailCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import {
-  initialSubscriberState,
-  subscribeToDealsAction,
-} from "../actions";
 
 type DealSignupFormProps = {
   source?: string;
   variant?: "default" | "compact";
 };
 
+type SubscriberResult = {
+  ok: boolean;
+  message: string;
+};
+
+const initialSubscriberState: SubscriberResult = {
+  ok: false,
+  message: "",
+};
+
 export function DealSignupForm({ source = "homepage", variant = "default" }: DealSignupFormProps) {
-  const [state, formAction, isPending] = useActionState(
-    subscribeToDealsAction,
-    initialSubscriberState,
-  );
+  const [state, setState] = useState<SubscriberResult>(initialSubscriberState);
+  const [isPending, setIsPending] = useState(false);
   const isCompact = variant === "compact";
 
+  async function submitSignup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsPending(true);
+    setState(initialSubscriberState);
+
+    try {
+      const response = await fetch("/api/nyhetsbrev", {
+        method: "POST",
+        body: new FormData(event.currentTarget),
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      const result = (await response.json()) as SubscriberResult;
+
+      setState(result);
+
+      if (result.ok) {
+        event.currentTarget.reset();
+      }
+    } catch {
+      setState({
+        ok: false,
+        message: "Kunde inte spara just nu. Försök igen om en stund.",
+      });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
   return (
-    <form action={formAction} className={isCompact ? "space-y-2" : "space-y-3"}>
+    <form
+      action="/api/nyhetsbrev"
+      method="post"
+      onSubmit={submitSignup}
+      className={isCompact ? "space-y-2" : "space-y-3"}
+    >
       <input type="hidden" name="source" value={source} />
       <div className="hidden">
         <label htmlFor={`${source}-company`}>Företag</label>
@@ -58,6 +96,7 @@ export function DealSignupForm({ source = "homepage", variant = "default" }: Dea
               ? isCompact ? "text-xs text-primary" : "text-sm text-primary"
               : isCompact ? "text-xs text-destructive" : "text-sm text-destructive"
           }
+          aria-live="polite"
         >
           {state.message}
         </p>
