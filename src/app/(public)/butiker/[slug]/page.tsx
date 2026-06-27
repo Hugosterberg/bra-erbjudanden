@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+import { Store } from "lucide-react";
 
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
 import { findActiveStoreBySlug } from "@/features/stores/queries";
 import { createMetadata } from "@/shared/lib/seo";
+import { PageHeader } from "@/shared/ui/page-header";
+import { StoreLogo } from "@/shared/ui/store-logo";
 
 type StorePageProps = {
   params: Promise<{ slug: string }>;
@@ -29,17 +32,35 @@ export default async function StorePage({ params }: StorePageProps) {
   }
 
   const offers = await findActiveOffers({ storeSlug: slug });
+  const codeCount = offers.filter((offer) => offer.discount_code).length;
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-8 max-w-2xl space-y-3">
-        <p className="text-sm font-medium text-primary">Butik</p>
-        <h1 className="text-3xl font-semibold tracking-normal">{store.name}</h1>
-        <p className="leading-7 text-muted-foreground">
-          {store.description ?? "Aktuella erbjudanden och kampanjer."}
-        </p>
-      </div>
-      <OfferGrid offers={offers} />
-    </section>
+    <>
+      <PageHeader
+        eyebrow="Butik"
+        title={store.name}
+        description={store.description ?? "Aktuella erbjudanden och kampanjer."}
+        icon={Store}
+        stats={[
+          { value: offers.length, label: "aktiva erbjudanden" },
+          { value: codeCount, label: "rabattkoder" },
+        ]}
+      />
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+        <div className="mb-8 flex items-center gap-4 rounded-2xl bg-card p-5 shadow-soft ring-1 ring-foreground/10">
+          <StoreLogo
+            name={store.name}
+            logoUrl={store.logo_url}
+            websiteUrl={store.website_url}
+            size="lg"
+          />
+          <div>
+            <p className="text-sm font-medium text-primary">Varumärke</p>
+            <p className="mt-1 text-lg font-semibold tracking-tight">{store.name}</p>
+          </div>
+        </div>
+        <OfferGrid offers={offers} />
+      </section>
+    </>
   );
 }

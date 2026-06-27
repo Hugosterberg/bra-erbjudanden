@@ -70,6 +70,7 @@ export type Database = {
           discount_value: number;
           discount_code: string | null;
           affiliate_url: string;
+          terms: string | null;
           starts_at: string | null;
           ends_at: string | null;
           status: "draft" | "published" | "archived";
@@ -90,6 +91,7 @@ export type Database = {
           discount_value: number;
           discount_code?: string | null;
           affiliate_url: string;
+          terms?: string | null;
           starts_at?: string | null;
           ends_at?: string | null;
           status?: "draft" | "published" | "archived";

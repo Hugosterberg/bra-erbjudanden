@@ -1,8 +1,11 @@
+import { TicketPercent } from "lucide-react";
+
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
 import { NewsletterSignupPanel } from "@/features/subscribers/components/newsletter-signup-panel";
 import { createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
+import { PageHeader } from "@/shared/ui/page-header";
 
 export const revalidate = 300;
 
@@ -15,29 +18,35 @@ export const metadata = createMetadata({
 
 export default async function DiscountCodesPage() {
   const offers = await findActiveOffers({ redemptionType: "discount_code" });
+  const storeCount = new Set(
+    offers.map((offer) => offer.store?.id).filter(Boolean),
+  ).size;
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-8 max-w-2xl space-y-3">
-        <p className="text-sm font-medium text-primary">Koder som går att använda</p>
-        <h1 className="text-3xl font-semibold tracking-normal">Rabattkoder</h1>
-        <p className="leading-7 text-muted-foreground">
-          Hitta rabattkoder där koden är synlig innan du går vidare till
-          butiken. Vi visar bara publicerade erbjudanden som fortfarande är
-          aktiva.
-        </p>
-      </div>
-      <OfferGrid offers={offers} />
-      <div className="mt-10">
-        <NewsletterSignupPanel
-          source="discount-codes-page"
-          title="Få nya rabattkoder innan du behöver leta"
-          text="Vi skickar ett kort urval när nya koder är värda din uppmärksamhet."
-        />
-      </div>
-      <div className="mt-8">
-        <AffiliateDisclosure />
-      </div>
-    </section>
+    <>
+      <PageHeader
+        eyebrow="Koder som går att använda"
+        title="Rabattkoder"
+        description="Hitta rabattkoder där koden är synlig innan du går vidare till butiken. Vi visar bara publicerade erbjudanden som fortfarande är aktiva."
+        icon={TicketPercent}
+        stats={[
+          { value: offers.length, label: "aktiva koder" },
+          { value: storeCount, label: "butiker" },
+        ]}
+      />
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+        <OfferGrid offers={offers} />
+        <div className="mt-10">
+          <NewsletterSignupPanel
+            source="discount-codes-page"
+            title="Få nya rabattkoder innan du behöver leta"
+            text="Vi skickar ett kort urval när nya koder är värda din uppmärksamhet."
+          />
+        </div>
+        <div className="mt-8">
+          <AffiliateDisclosure />
+        </div>
+      </section>
+    </>
   );
 }

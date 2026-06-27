@@ -8,6 +8,20 @@ export function formatDiscount(type: DiscountType, value: number) {
   return `${Math.round(value)} kr`;
 }
 
+// Ranks offers by discount magnitude. Percentage discounts are prioritised
+// over fixed amounts since they are comparable across price points; within the
+// same type the higher value wins.
+export function compareByDiscount(a: OfferWithRelations, b: OfferWithRelations) {
+  const aIsPercentage = a.discount_type === "percentage";
+  const bIsPercentage = b.discount_type === "percentage";
+
+  if (aIsPercentage !== bIsPercentage) {
+    return aIsPercentage ? -1 : 1;
+  }
+
+  return b.discount_value - a.discount_value;
+}
+
 export function formatOfferValidity(date: string | null) {
   if (!date) {
     return "Tills vidare";

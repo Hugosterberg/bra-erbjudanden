@@ -59,6 +59,7 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
       discount_value: offer?.discount_value ?? 10,
       discount_code: offer?.discount_code ?? "",
       affiliate_url: offer?.affiliate_url ?? "",
+      terms: offer?.terms ?? "",
       starts_at: toDateTimeLocal(offer?.starts_at),
       ends_at: toDateTimeLocal(offer?.ends_at),
       status: offer?.status ?? "draft",
@@ -247,6 +248,22 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
         {errors.affiliate_url ? (
           <p className="text-sm text-destructive">{errors.affiliate_url.message}</p>
         ) : null}
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="terms">Villkor (valfritt)</Label>
+        <Input
+          id="terms"
+          {...form.register("terms")}
+          placeholder="T.ex. Vid köp över 500 kr"
+        />
+        {errors.terms ? (
+          <p className="text-sm text-destructive">{errors.terms.message}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Kort villkor som visas på erbjudandet, t.ex. minsta köpbelopp.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

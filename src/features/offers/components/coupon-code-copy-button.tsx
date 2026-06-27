@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type CouponCodeCopyButtonProps = {
@@ -48,34 +47,31 @@ export function CouponCodeCopyButton({
   }
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={copyCode}
+      aria-label={`Kopiera rabattkod ${code}`}
+      title={copied ? "Kopierad!" : "Klicka för att kopiera koden"}
       className={cn(
-        "grid min-w-0 grid-cols-[1fr_auto] items-center gap-2 rounded-md border border-dashed border-primary/45 bg-primary/5 px-3 py-2",
+        "group relative flex w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-dashed border-primary/45 bg-primary/5 py-2 pr-10 pl-3 text-center transition-all duration-300 hover:border-primary/70 hover:bg-primary/10 hover:shadow-[0_8px_24px_-12px_oklch(0.55_0.14_150/0.5)]",
         className,
       )}
     >
       <span
         className={cn(
-          "min-w-0 truncate text-center font-mono text-base font-semibold text-foreground",
+          "min-w-0 font-mono text-base font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]",
           codeClassName,
         )}
       >
         {code}
       </span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        onClick={copyCode}
-        aria-label={`Kopiera rabattkod ${code}`}
-        className="shrink-0"
-      >
+      <span className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground transition-colors group-hover:text-primary">
         {copied ? (
           <Check className="size-4 text-primary" />
         ) : (
-          <Copy className="size-4 text-muted-foreground" />
+          <Copy className="size-4" />
         )}
-      </Button>
-    </div>
+      </span>
+    </button>
   );
 }

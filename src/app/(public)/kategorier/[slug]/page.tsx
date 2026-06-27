@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import { Tags } from "lucide-react";
 
 import { findActiveCategoryBySlug } from "@/features/categories/queries";
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
 import { createMetadata } from "@/shared/lib/seo";
+import { PageHeader } from "@/shared/ui/page-header";
 
 type CategoryPageProps = {
   params: Promise<{ slug: string }>;
@@ -29,17 +31,25 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   }
 
   const offers = await findActiveOffers({ categorySlug: slug });
+  const storeCount = new Set(
+    offers.map((offer) => offer.store?.id).filter(Boolean),
+  ).size;
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-8 max-w-2xl space-y-3">
-        <p className="text-sm font-medium text-primary">Kategori</p>
-        <h1 className="text-3xl font-semibold tracking-normal">{category.name}</h1>
-        <p className="leading-7 text-muted-foreground">
-          {category.description ?? "Handplockade erbjudanden i denna kategori."}
-        </p>
-      </div>
-      <OfferGrid offers={offers} />
-    </section>
+    <>
+      <PageHeader
+        eyebrow="Kategori"
+        title={category.name}
+        description={category.description ?? "Handplockade erbjudanden i denna kategori."}
+        icon={Tags}
+        stats={[
+          { value: offers.length, label: "aktiva erbjudanden" },
+          { value: storeCount, label: "butiker" },
+        ]}
+      />
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+        <OfferGrid offers={offers} />
+      </section>
+    </>
   );
 }

@@ -1,6 +1,9 @@
+import { Tags } from "lucide-react";
+
 import { CategoryGrid } from "@/features/categories/components/category-grid";
 import { findActiveCategories } from "@/features/categories/queries";
 import { createMetadata } from "@/shared/lib/seo";
+import { PageHeader } from "@/shared/ui/page-header";
 
 export const revalidate = 300;
 
@@ -14,15 +17,17 @@ export default async function CategoriesPage() {
   const categories = await findActiveCategories();
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-8 max-w-2xl space-y-3">
-        <p className="text-sm font-medium text-primary">Kategorier</p>
-        <h1 className="text-3xl font-semibold tracking-normal">Hitta rätt erbjudande snabbare</h1>
-        <p className="leading-7 text-muted-foreground">
-          Bläddra bland kategorier för att se relevanta rabatter.
-        </p>
-      </div>
-      <CategoryGrid categories={categories} />
-    </section>
+    <>
+      <PageHeader
+        eyebrow="Kategorier"
+        title="Hitta rätt erbjudande snabbare"
+        description="Bläddra bland kategorier för att se relevanta rabatter och kampanjer utan att scrolla igenom allt."
+        icon={Tags}
+        stats={[{ value: categories.length, label: "kategorier" }]}
+      />
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+        <CategoryGrid categories={categories} />
+      </section>
+    </>
   );
 }

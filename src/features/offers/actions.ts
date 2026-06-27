@@ -24,6 +24,7 @@ function offerFormDataToInput(formData: FormData) {
     discount_value: String(formData.get("discount_value") ?? "0"),
     discount_code: String(formData.get("discount_code") ?? ""),
     affiliate_url: String(formData.get("affiliate_url") ?? ""),
+    terms: String(formData.get("terms") ?? ""),
     starts_at: String(formData.get("starts_at") ?? ""),
     ends_at: String(formData.get("ends_at") ?? ""),
     status: String(formData.get("status") ?? "draft"),

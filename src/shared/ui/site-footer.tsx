@@ -1,16 +1,21 @@
 import Link from "next/link";
-import { BadgeCheck, BellRing, ShieldCheck } from "lucide-react";
+import { BadgeCheck, BellRing, ShieldCheck, Tag } from "lucide-react";
 
 import { DealSignupForm } from "@/features/subscribers/components/deal-signup-form";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t bg-muted/35">
-      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_300px]">
+    <footer className="border-t border-border/70 bg-muted/35">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_300px]">
         <div className="space-y-5">
           <div className="max-w-xl space-y-3">
-            <p className="font-semibold">braerbjudanden.se</p>
+            <Link href="/" className="flex items-center gap-2.5 font-semibold">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/75 text-primary-foreground ring-1 ring-primary/20">
+                <Tag className="size-4" />
+              </span>
+              braerbjudanden.se
+            </Link>
             <AffiliateDisclosure />
           </div>
           <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
@@ -53,6 +58,12 @@ export function SiteFooter() {
             </p>
           </div>
           <DealSignupForm source="footer" variant="compact" />
+        </div>
+      </div>
+      <div className="border-t border-border/70">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p>© {new Date().getFullYear()} braerbjudanden.se · Alla priser med reservation för ändringar.</p>
+          <p>Byggt i Sverige · Endast aktiva erbjudanden</p>
         </div>
       </div>
     </footer>
