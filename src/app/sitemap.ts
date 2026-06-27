@@ -15,7 +15,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     "",
     "/erbjudanden",
-    "/rabattkoder",
     "/kampanjer",
     "/butiker",
     "/kategorier",

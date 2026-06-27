@@ -1,8 +1,11 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/features/admin/auth";
+import { resolveUploadedImage } from "@/shared/lib/image-upload";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { normalizeOfferInput, offerSchema } from "./schemas";
@@ -11,6 +14,56 @@ export type OfferActionState = {
   ok: boolean;
   message: string;
 };
+
+export type OfferImageUploadState = {
+  ok: boolean;
+  url?: string;
+  message?: string;
+};
+
+const IMAGE_BUCKET = "offer-images";
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "webp", "svg"];
+
+export async function uploadOfferImageAction(
+  formData: FormData,
+): Promise<OfferImageUploadState> {
+  await requireAdmin();
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return { ok: false, message: "Lagringen är inte konfigurerad." };
+  }
+
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Välj en bildfil att ladda upp." };
+  }
+
+  if (file.size > MAX_IMAGE_BYTES) {
+    return { ok: false, message: "Bilden är för stor (max 4 MB)." };
+  }
+
+  const resolved = resolveUploadedImage(file, ALLOWED_IMAGE_EXTENSIONS);
+
+  if (!resolved.ok) {
+    return { ok: false, message: resolved.message };
+  }
+
+  const path = `${randomUUID()}.${resolved.extension}`;
+  const { error } = await supabase.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, file, { contentType: resolved.mime, upsert: false });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path);
+
+  return { ok: true, url: data.publicUrl };
+}
 
 function offerFormDataToInput(formData: FormData) {
   return {
@@ -25,6 +78,7 @@ function offerFormDataToInput(formData: FormData) {
     discount_code: String(formData.get("discount_code") ?? ""),
     affiliate_url: String(formData.get("affiliate_url") ?? ""),
     terms: String(formData.get("terms") ?? ""),
+    image_url: String(formData.get("image_url") ?? ""),
     starts_at: String(formData.get("starts_at") ?? ""),
     ends_at: String(formData.get("ends_at") ?? ""),
     status: String(formData.get("status") ?? "draft"),

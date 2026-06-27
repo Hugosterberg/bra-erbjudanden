@@ -15,6 +15,11 @@ export const initialSubscriberState: SubscriberResult = {
   message: "",
 };
 
+function normalizeSource(source: string) {
+  const trimmed = source.trim();
+  return trimmed.length > 0 ? trimmed : "unknown";
+}
+
 export async function registerDealSubscriber(input: FormData): Promise<SubscriberResult> {
   const parsed = subscriberSchema.safeParse({
     email: String(input.get("email") ?? ""),
@@ -45,23 +50,69 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
     };
   }
 
+  const email = parsed.data.email.trim().toLowerCase();
+  const source = normalizeSource(parsed.data.source);
+  const now = new Date().toISOString();
+
   try {
-    const { error } = await supabase.rpc("register_deal_subscriber", {
-      p_email: parsed.data.email,
-      p_source: parsed.data.source,
-      p_consent_text: newsletterConsentText,
-    });
+    const { data: existing, error: lookupError } = await supabase
+      .from("deal_subscribers")
+      .select("id, signup_count, signup_sources")
+      .eq("email", email)
+      .maybeSingle();
 
-    if (error) {
-      console.error("[newsletter] Supabase RPC failed", {
-        code: error.code,
-        message: error.message,
-      });
-
+    if (lookupError) {
+      console.error("[newsletter] Subscriber lookup failed", lookupError);
       return {
         ok: false,
         message: "Kunde inte spara just nu. Försök igen om en stund.",
       };
+    }
+
+    if (existing) {
+      const signupSources = existing.signup_sources.includes(source)
+        ? existing.signup_sources
+        : [...existing.signup_sources, source];
+
+      const { error } = await supabase
+        .from("deal_subscribers")
+        .update({
+          status: "active",
+          source,
+          consent_text: newsletterConsentText,
+          consent_given_at: now,
+          last_signup_at: now,
+          signup_count: existing.signup_count + 1,
+          signup_sources: signupSources,
+        })
+        .eq("id", existing.id);
+
+      if (error) {
+        console.error("[newsletter] Subscriber update failed", error);
+        return {
+          ok: false,
+          message: "Kunde inte spara just nu. Försök igen om en stund.",
+        };
+      }
+    } else {
+      const { error } = await supabase.from("deal_subscribers").insert({
+        email,
+        status: "active",
+        source,
+        consent_text: newsletterConsentText,
+        consent_given_at: now,
+        last_signup_at: now,
+        signup_count: 1,
+        signup_sources: [source],
+      });
+
+      if (error) {
+        console.error("[newsletter] Subscriber insert failed", error);
+        return {
+          ok: false,
+          message: "Kunde inte spara just nu. Försök igen om en stund.",
+        };
+      }
     }
   } catch (error) {
     console.error("[newsletter] Signup request failed", error);

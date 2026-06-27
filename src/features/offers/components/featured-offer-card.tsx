@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferMedia } from "./offer-media";
 import { OfferTerms } from "./offer-terms";
 import { StoreLogo } from "@/shared/ui/store-logo";
 import {
@@ -40,17 +41,13 @@ export function FeaturedOfferCard({ offer }: { offer: OfferWithRelations }) {
               </h3>
             </Link>
           </div>
-          <div
-            className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-center text-accent-foreground ring-1 ring-primary/10 transition-all duration-300 group-hover:scale-[1.05] group-hover:[box-shadow:0_14px_30px_-10px_oklch(0.55_0.14_150/0.6)]"
-            data-numeric
-          >
-            <span className="text-2xl font-semibold leading-none">
-              {formatDiscount(offer.discount_type, offer.discount_value)}
-            </span>
-            <span className="mt-1 text-[10px] font-medium uppercase tracking-wide">
-              rabatt
-            </span>
-          </div>
+          <OfferMedia
+            imageUrl={offer.image_url}
+            title={offer.title}
+            discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
+            className="size-24"
+            chipTextClassName="text-2xl"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">

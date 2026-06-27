@@ -71,6 +71,7 @@ export type Database = {
           discount_code: string | null;
           affiliate_url: string;
           terms: string | null;
+          image_url: string | null;
           starts_at: string | null;
           ends_at: string | null;
           status: "draft" | "published" | "archived";
@@ -92,6 +93,7 @@ export type Database = {
           discount_code?: string | null;
           affiliate_url: string;
           terms?: string | null;
+          image_url?: string | null;
           starts_at?: string | null;
           ends_at?: string | null;
           status?: "draft" | "published" | "archived";

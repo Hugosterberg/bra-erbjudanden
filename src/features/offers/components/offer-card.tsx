@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferMedia } from "./offer-media";
 import { OfferTerms } from "./offer-terms";
 import { StoreLogo } from "@/shared/ui/store-logo";
 import {
@@ -39,15 +40,12 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
               </h2>
             </Link>
           </div>
-          <div
-            className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-accent px-3 py-2 text-center text-accent-foreground ring-1 ring-primary/10 transition-all duration-300 group-hover:scale-[1.04] group-hover:[box-shadow:0_12px_28px_-10px_oklch(0.55_0.14_150/0.55)]"
-            data-numeric
-          >
-            <p className="text-xl font-semibold leading-none">
-              {formatDiscount(offer.discount_type, offer.discount_value)}
-            </p>
-            <p className="mt-1 text-[10px] font-medium uppercase tracking-wide">rabatt</p>
-          </div>
+          <OfferMedia
+            imageUrl={offer.image_url}
+            title={offer.title}
+            discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
+            className="size-20"
+          />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

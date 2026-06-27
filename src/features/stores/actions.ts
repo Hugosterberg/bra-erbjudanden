@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/features/admin/auth";
+import { resolveUploadedImage } from "@/shared/lib/image-upload";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { normalizeStoreInput, storeSchema } from "./schemas";
@@ -22,14 +23,7 @@ export type StoreLogoUploadState = {
 
 const LOGO_BUCKET = "store-logos";
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
-const ALLOWED_LOGO_TYPES: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/svg+xml": "svg",
-  "image/x-icon": "ico",
-  "image/vnd.microsoft.icon": "ico",
-};
+const ALLOWED_LOGO_EXTENSIONS = ["png", "jpg", "webp", "svg", "ico"];
 
 export async function uploadStoreLogoAction(
   formData: FormData,
@@ -51,16 +45,16 @@ export async function uploadStoreLogoAction(
     return { ok: false, message: "Bilden är för stor (max 2 MB)." };
   }
 
-  const extension = ALLOWED_LOGO_TYPES[file.type];
+  const resolved = resolveUploadedImage(file, ALLOWED_LOGO_EXTENSIONS);
 
-  if (!extension) {
-    return { ok: false, message: "Filformatet stöds inte. Använd PNG, JPG, WEBP eller SVG." };
+  if (!resolved.ok) {
+    return { ok: false, message: resolved.message };
   }
 
-  const path = `${randomUUID()}.${extension}`;
+  const path = `${randomUUID()}.${resolved.extension}`;
   const { error } = await supabase.storage
     .from(LOGO_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, file, { contentType: resolved.mime, upsert: false });
 
   if (error) {
     return { ok: false, message: error.message };

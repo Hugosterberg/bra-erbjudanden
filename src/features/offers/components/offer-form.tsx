@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { ImagePlus, Loader2, Upload, X } from "lucide-react";
 import type { z } from "zod";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/features/categories/types";
 import type { Store } from "@/features/stores/types";
 
-import { createOfferAction, updateOfferAction } from "../actions";
+import { createOfferAction, updateOfferAction, uploadOfferImageAction } from "../actions";
 import { offerSchema } from "../schemas";
 import type { OfferWithRelations } from "../types";
 
@@ -45,6 +47,9 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [isUploading, startUpload] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<OfferFormValues>({
     resolver: zodResolver(offerSchema),
@@ -60,6 +65,7 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
       discount_code: offer?.discount_code ?? "",
       affiliate_url: offer?.affiliate_url ?? "",
       terms: offer?.terms ?? "",
+      image_url: offer?.image_url ?? "",
       starts_at: toDateTimeLocal(offer?.starts_at),
       ends_at: toDateTimeLocal(offer?.ends_at),
       status: offer?.status ?? "draft",
@@ -101,6 +107,32 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
     control: form.control,
     name: "redemption_type",
   });
+  const imageUrl = useWatch({ control: form.control, name: "image_url" });
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setUploadError(null);
+    const uploadData = new FormData();
+    uploadData.set("file", file);
+
+    startUpload(async () => {
+      const result = await uploadOfferImageAction(uploadData);
+
+      if (!result.ok || !result.url) {
+        setUploadError(result.message ?? "Uppladdningen misslyckades.");
+        return;
+      }
+
+      form.setValue("image_url", result.url, { shouldDirty: true });
+    });
+
+    event.target.value = "";
+  }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
@@ -266,6 +298,68 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
         )}
       </div>
 
+      <div className="grid gap-2">
+        <Label>Bild på produkt eller företag (valfritt)</Label>
+        <input type="hidden" {...form.register("image_url")} />
+        <div className="flex items-center gap-4 rounded-lg border p-4">
+          <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10">
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt="Förhandsvisning"
+                fill
+                sizes="80px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <ImagePlus className="size-6 text-muted-foreground" />
+            )}
+          </div>
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Upload className="size-4" />
+                )}
+                {isUploading ? "Laddar upp..." : "Ladda upp bild"}
+              </Button>
+              {imageUrl ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => form.setValue("image_url", "", { shouldDirty: true })}
+                  disabled={isUploading}
+                >
+                  <X className="size-4" />
+                  Ta bort
+                </Button>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              PNG, JPG, WEBP eller SVG. Max 4 MB. Visas i kortet där rabatten står.
+            </p>
+          </div>
+        </div>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          className="hidden"
+          onChange={handleImageChange}
+        />
+        {uploadError ? <p className="text-sm text-destructive">{uploadError}</p> : null}
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="starts_at">Startdatum</Label>
@@ -314,7 +408,7 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Avbryt
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isUploading}>
           {isPending ? "Sparar..." : "Spara erbjudande"}
         </Button>
       </div>

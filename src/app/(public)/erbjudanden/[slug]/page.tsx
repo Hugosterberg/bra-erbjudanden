@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, Info, Sparkles, Timer } from "lucide-react";
@@ -113,6 +114,18 @@ export default async function OfferPage({ params }: OfferPageProps) {
       </div>
       <aside className="h-fit rounded-2xl bg-card p-6 shadow-soft ring-1 ring-foreground/10">
         <div className="space-y-4 text-center">
+          {offer.image_url ? (
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10">
+              <Image
+                src={offer.image_url}
+                alt={offer.title}
+                fill
+                sizes="320px"
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+          ) : null}
           <div
             className="mx-auto flex w-fit flex-col items-center justify-center rounded-xl bg-accent px-5 py-3 text-accent-foreground ring-1 ring-primary/10"
             data-numeric

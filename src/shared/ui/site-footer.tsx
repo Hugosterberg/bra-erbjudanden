@@ -2,12 +2,19 @@ import Link from "next/link";
 import { BadgeCheck, BellRing, CheckCircle2, ShieldCheck, Tag } from "lucide-react";
 
 import { DealSignupForm } from "@/features/subscribers/components/deal-signup-form";
+import { siteConfig } from "@/shared/config/site";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 
 const signupPerks = [
   { icon: BadgeCheck, label: "Handplockat urval" },
   { icon: ShieldCheck, label: "Ingen spam" },
   { icon: CheckCircle2, label: "Avsluta när du vill" },
+];
+
+const footerPerks = [
+  { icon: BadgeCheck, label: "Handplockat urval" },
+  { icon: CheckCircle2, label: "Bara aktiva erbjudanden" },
+  { icon: ShieldCheck, label: "Annonslänkar märks tydligt" },
 ];
 
 export function SiteFooter() {
@@ -37,7 +44,7 @@ export function SiteFooter() {
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">
               Vi mailar ett kort, handplockat urval när något verkligen är värt din
-              uppmärksamhet. Inget brus – bara de bästa erbjudandena.
+              uppmärksamhet. Inget brus, bara de bästa erbjudandena.
             </p>
 
             <div className="mx-auto mt-7 max-w-md text-left">
@@ -63,40 +70,52 @@ export function SiteFooter() {
       </section>
 
       <div className="border-t border-border/70">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.5fr_1fr]">
-          <div className="max-w-xl space-y-3">
-            <Link href="/" className="flex items-center gap-2.5 font-semibold">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/75 text-primary-foreground ring-1 ring-primary/20">
-                <Tag className="size-4" />
+        <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+          <div className="flex flex-col items-center gap-6 text-center">
+            <Link
+              href="/"
+              aria-label="braerbjudanden.se – till startsidan"
+              className="group flex cursor-pointer items-center gap-2.5 font-semibold"
+            >
+              <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-sm ring-1 ring-primary/20 transition-transform duration-300 group-hover:-rotate-6">
+                <Tag className="size-4.5" />
               </span>
-              braerbjudanden.se
+              <span className="text-base tracking-tight">
+                braerbjudanden<span className="text-muted-foreground">.se</span>
+              </span>
             </Link>
-            <AffiliateDisclosure />
+            <p className="max-w-md text-sm leading-6 text-muted-foreground">
+              {siteConfig.description} Vi rankar tydligt och visar bara aktiva
+              deals – aldrig utgångna.
+            </p>
+            <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+              {footerPerks.map((perk) => {
+                const Icon = perk.icon;
+                return (
+                  <li
+                    key={perk.label}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+                  >
+                    <Icon className="size-4 text-primary" />
+                    {perk.label}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <nav className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm text-muted-foreground sm:grid-cols-3 lg:justify-items-end">
-            <Link href="/erbjudanden" className="hover:text-foreground">
-              Erbjudanden
-            </Link>
-            <Link href="/rabattkoder" className="hover:text-foreground">
-              Rabattkoder
-            </Link>
-            <Link href="/kampanjer" className="hover:text-foreground">
-              Kampanjer
-            </Link>
-            <Link href="/butiker" className="hover:text-foreground">
-              Butiker
-            </Link>
-            <Link href="/kategorier" className="hover:text-foreground">
-              Kategorier
-            </Link>
-          </nav>
         </div>
       </div>
 
       <div className="border-t border-border/70">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>© {new Date().getFullYear()} braerbjudanden.se · Alla priser med reservation för ändringar.</p>
-          <p>Byggt i Sverige · Endast aktiva erbjudanden</p>
+        <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 sm:px-6">
+          <AffiliateDisclosure />
+          <div className="flex flex-col gap-1 border-t border-border/60 pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {new Date().getFullYear()} braerbjudanden.se · Alla priser med
+              reservation för ändringar.
+            </p>
+            <p>Byggt i Sverige · Endast aktiva erbjudanden</p>
+          </div>
         </div>
       </div>
     </footer>

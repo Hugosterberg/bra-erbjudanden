@@ -15,7 +15,6 @@ import { ThemeToggle } from "@/shared/ui/theme-toggle";
 
 const navigation = [
   { href: "/erbjudanden", label: "Erbjudanden" },
-  { href: "/rabattkoder", label: "Rabattkoder" },
   { href: "/kampanjer", label: "Kampanjer" },
   { href: "/butiker", label: "Butiker" },
   { href: "/kategorier", label: "Kategorier" },
@@ -25,7 +24,11 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="group flex items-center gap-2.5 font-semibold">
+        <Link
+          href="/"
+          aria-label="braerbjudanden.se – till startsidan"
+          className="group flex cursor-pointer items-center gap-2.5 font-semibold"
+        >
           <span className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-sm ring-1 ring-primary/20 transition-transform duration-300 group-hover:-rotate-6">
             <Tag className="size-4.5" />
           </span>

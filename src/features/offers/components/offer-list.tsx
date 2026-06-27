@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferMedia } from "./offer-media";
 import { OfferTerms } from "./offer-terms";
 import { StoreLogo } from "@/shared/ui/store-logo";
 import {
@@ -39,17 +40,13 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
             key={offer.id}
             className="group grid gap-4 p-4 transition-colors hover:bg-muted/40 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:p-5 lg:grid-cols-[6.5rem_minmax(0,1fr)_13rem] lg:items-center"
           >
-            <div
-              className="flex h-20 w-24 shrink-0 flex-col items-center justify-center rounded-xl bg-accent text-accent-foreground ring-1 ring-primary/10 transition-all duration-300 group-hover:scale-[1.05] group-hover:[box-shadow:0_12px_28px_-10px_oklch(0.55_0.14_150/0.55)]"
-              data-numeric
-            >
-              <span className="text-2xl font-semibold leading-none">
-                {formatDiscount(offer.discount_type, offer.discount_value)}
-              </span>
-              <span className="mt-1 text-[10px] font-medium uppercase tracking-wide">
-                rabatt
-              </span>
-            </div>
+            <OfferMedia
+              imageUrl={offer.image_url}
+              title={offer.title}
+              discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
+              className="h-20 w-24"
+              chipTextClassName="text-2xl"
+            />
 
             <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-center gap-2">

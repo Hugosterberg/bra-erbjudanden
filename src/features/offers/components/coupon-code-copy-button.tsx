@@ -34,10 +34,15 @@ export function CouponCodeCopyButton({
       return;
     }
 
+    let frame = 0;
+
     const fit = () => {
       const available = container.clientWidth;
 
+      // Layout not settled yet (e.g. inside a hidden/animating parent) —
+      // retry on the next frame so we never leave the text clipped.
       if (available === 0) {
+        frame = window.requestAnimationFrame(fit);
         return;
       }
 
@@ -49,7 +54,9 @@ export function CouponCodeCopyButton({
         return;
       }
 
-      const scaled = Math.floor((MAX_FONT_PX * available) / naturalWidth);
+      // Subtract a 1px safety buffer to avoid sub-pixel rounding clipping
+      // the final glyph.
+      const scaled = Math.floor((MAX_FONT_PX * (available - 1)) / naturalWidth);
       setFontSize(Math.max(MIN_FONT_PX, scaled));
     };
 
@@ -58,7 +65,16 @@ export function CouponCodeCopyButton({
     const observer = new ResizeObserver(fit);
     observer.observe(container);
 
-    return () => observer.disconnect();
+    // The monospace webfont is wider than the fallback font; re-measure once
+    // it has loaded so we don't size against the wrong metrics.
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      document.fonts.ready.then(fit).catch(() => {});
+    }
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [code]);
 
   useEffect(() => {

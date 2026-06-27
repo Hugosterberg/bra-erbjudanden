@@ -15,6 +15,12 @@ export const offerSchema = z
     discount_code: z.string().trim().optional(),
     affiliate_url: z.string().trim().url("Ange en giltig affiliatelänk"),
     terms: z.string().trim().max(160, "Villkoret är för långt").optional(),
+    image_url: z
+      .string()
+      .trim()
+      .url("Ange en giltig bild-URL")
+      .optional()
+      .or(z.literal("")),
     starts_at: z.string().trim().optional(),
     ends_at: z.string().trim().optional(),
     status: z.enum(["draft", "published", "archived"]),
@@ -54,6 +60,7 @@ export function normalizeOfferInput(input: OfferInput) {
     discount_code: input.redemption_type === "discount_code" ? input.discount_code || null : null,
     affiliate_url: input.affiliate_url,
     terms: input.terms?.trim() || null,
+    image_url: input.image_url?.trim() || null,
     starts_at: input.starts_at ? new Date(input.starts_at).toISOString() : null,
     ends_at: input.ends_at ? new Date(input.ends_at).toISOString() : null,
     status: input.status,
