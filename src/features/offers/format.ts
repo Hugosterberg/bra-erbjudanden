@@ -1,4 +1,4 @@
-import type { DiscountType, RedemptionType } from "./types";
+import type { DiscountType, OfferWithRelations, RedemptionType } from "./types";
 
 export function formatDiscount(type: DiscountType, value: number) {
   if (type === "percentage") {
@@ -26,4 +26,22 @@ export function formatRedemptionType(type: RedemptionType) {
   }
 
   return "Direktlänk";
+}
+
+export function formatOfferDestination(offer: OfferWithRelations) {
+  const destinationUrl = offer.store?.website_url ?? offer.affiliate_url;
+
+  try {
+    const url = new URL(
+      destinationUrl.startsWith("http") ? destinationUrl : `https://${destinationUrl}`,
+    );
+
+    return url.hostname.replace(/^www\./, "");
+  } catch {
+    return offer.store?.name ?? "erbjudande";
+  }
+}
+
+export function formatOfferCtaLabel(offer: OfferWithRelations) {
+  return `Gå till ${formatOfferDestination(offer)}`;
 }

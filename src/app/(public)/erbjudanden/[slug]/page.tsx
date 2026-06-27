@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CouponCodeCopyButton } from "@/features/offers/components/coupon-code-copy-button";
-import { formatDiscount, formatOfferValidity } from "@/features/offers/format";
+import {
+  formatDiscount,
+  formatOfferCtaLabel,
+  formatOfferValidity,
+} from "@/features/offers/format";
 import { findActiveOfferBySlug } from "@/features/offers/queries";
 import { createJsonLd, createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
@@ -74,16 +78,17 @@ export default async function OfferPage({ params }: OfferPageProps) {
         </div>
       </div>
       <aside className="h-fit rounded-lg border bg-card p-5">
-        <div className="space-y-4">
+        <div className="space-y-3 text-center">
           {offer.discount_code ? (
-            <div>
-              <p className="text-sm text-muted-foreground">Rabattkod</p>
-              <CouponCodeCopyButton code={offer.discount_code} className="mt-2 bg-muted px-3 py-2" />
-            </div>
+            <CouponCodeCopyButton
+              code={offer.discount_code}
+              className="py-3"
+              codeClassName="text-xl"
+            />
           ) : null}
-          <Button asChild className="w-full">
+          <Button asChild className="w-full whitespace-normal text-center leading-tight">
             <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
-              Gå till erbjudande
+              {formatOfferCtaLabel(offer)}
               <ArrowUpRight className="size-4" />
             </Link>
           </Button>

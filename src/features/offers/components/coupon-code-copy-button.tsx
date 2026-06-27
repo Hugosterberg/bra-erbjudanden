@@ -9,9 +9,14 @@ import { cn } from "@/lib/utils";
 type CouponCodeCopyButtonProps = {
   code: string;
   className?: string;
+  codeClassName?: string;
 };
 
-export function CouponCodeCopyButton({ code, className }: CouponCodeCopyButtonProps) {
+export function CouponCodeCopyButton({
+  code,
+  className,
+  codeClassName,
+}: CouponCodeCopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -45,11 +50,16 @@ export function CouponCodeCopyButton({ code, className }: CouponCodeCopyButtonPr
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center justify-between gap-2 rounded-md border border-dashed bg-background px-2 py-1.5",
+        "grid min-w-0 grid-cols-[1fr_auto] items-center gap-2 rounded-md border border-dashed border-primary/45 bg-primary/5 px-3 py-2",
         className,
       )}
     >
-      <span className="min-w-0 truncate font-mono text-sm font-medium text-foreground">
+      <span
+        className={cn(
+          "min-w-0 truncate text-center font-mono text-base font-semibold text-foreground",
+          codeClassName,
+        )}
+      >
         {code}
       </span>
       <Button

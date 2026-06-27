@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
-import { formatDiscount, formatOfferValidity, formatRedemptionType } from "../format";
+import {
+  formatDiscount,
+  formatOfferCtaLabel,
+  formatOfferValidity,
+  formatRedemptionType,
+} from "../format";
 import type { OfferWithRelations } from "../types";
 
 export function OfferCard({ offer }: { offer: OfferWithRelations }) {
-  const ctaLabel = offer.redemption_type === "discount_code" ? "Hämta rabattkod" : "Gå till deal";
-
   return (
     <Card className="h-full gap-4 overflow-hidden rounded-lg border-border/80 shadow-none transition hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-sm">
       <CardHeader className="gap-4">
@@ -29,7 +32,9 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
             </Link>
           </div>
           <div className="rounded-md border bg-accent px-3 py-2 text-center text-accent-foreground">
-            <p className="text-xl font-semibold">{formatDiscount(offer.discount_type, offer.discount_value)}</p>
+            <p className="text-xl font-semibold">
+              {formatDiscount(offer.discount_type, offer.discount_value)}
+            </p>
             <p className="text-[11px] uppercase">rabatt</p>
           </div>
         </div>
@@ -43,17 +48,14 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
             Gäller till {formatOfferValidity(offer.ends_at)}
           </span>
         </div>
-        {offer.discount_code ? (
-          <div className="space-y-1.5">
-            <span className="text-xs text-muted-foreground">Kod</span>
-            <CouponCodeCopyButton code={offer.discount_code} className="bg-muted/50 px-3 py-2" />
-          </div>
-        ) : null}
       </CardContent>
-      <CardFooter className="mt-auto">
-        <Button asChild className="w-full">
+      <CardFooter className="mt-auto grid gap-2">
+        {offer.discount_code ? (
+          <CouponCodeCopyButton code={offer.discount_code} codeClassName="text-lg" />
+        ) : null}
+        <Button asChild className="w-full whitespace-normal text-center leading-tight">
           <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
-            {ctaLabel}
+            {formatOfferCtaLabel(offer)}
             <ArrowUpRight className="size-4" />
           </Link>
         </Button>
