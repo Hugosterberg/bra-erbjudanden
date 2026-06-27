@@ -15,6 +15,14 @@ function mapOfferRelations(data: unknown[] | null): OfferWithRelations[] {
   return (data ?? []) as OfferWithRelations[];
 }
 
+function applyActiveDateWindow<T extends { or: (filters: string) => T }>(query: T) {
+  const now = new Date().toISOString();
+
+  return query
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`);
+}
+
 export async function findActiveOffers(options: {
   limit?: number;
   storeSlug?: string;
@@ -36,10 +44,12 @@ export async function findActiveOffers(options: {
     return [];
   }
 
-  let query = supabase
-    .from("offers")
-    .select(offerRelationsSelect)
-    .eq("status", "published")
+  let query = applyActiveDateWindow(
+    supabase
+      .from("offers")
+      .select(offerRelationsSelect)
+      .eq("status", "published"),
+  )
     .order("is_featured", { ascending: false })
     .order("rank_position", { ascending: true })
     .order("updated_at", { ascending: false });
@@ -72,12 +82,13 @@ export async function findActiveOfferBySlug(slug: string) {
     return null;
   }
 
-  const { data } = await supabase
-    .from("offers")
-    .select(offerRelationsSelect)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
+  const { data } = await applyActiveDateWindow(
+    supabase
+      .from("offers")
+      .select(offerRelationsSelect)
+      .eq("slug", slug)
+      .eq("status", "published"),
+  ).single();
 
   return (data as OfferWithRelations | null) ?? null;
 }
@@ -89,12 +100,13 @@ export async function findOfferRedirectTarget(id: string): Promise<OfferRedirect
     return null;
   }
 
-  const { data } = await supabase
-    .from("offers")
-    .select("id, affiliate_url, store_id, status, starts_at, ends_at")
-    .eq("id", id)
-    .eq("status", "published")
-    .single();
+  const { data } = await applyActiveDateWindow(
+    supabase
+      .from("offers")
+      .select("id, affiliate_url, store_id, status, starts_at, ends_at")
+      .eq("id", id)
+      .eq("status", "published"),
+  ).single();
 
   return data;
 }

@@ -13,7 +13,7 @@ export function createMetadata({ title, description, path = "/" }: SeoInput): Me
   const fullTitle = title === siteConfig.name ? title : `${title} | ${siteConfig.name}`;
 
   return {
-    title: fullTitle,
+    title: title === siteConfig.name ? { absolute: siteConfig.name } : title,
     description,
     alternates: {
       canonical: url,
