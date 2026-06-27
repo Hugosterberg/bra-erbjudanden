@@ -22,6 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/features/categories/types";
 import type { Store } from "@/features/stores/types";
+import { resizeImageFile } from "@/shared/lib/image-resize";
 
 import { createOfferAction, updateOfferAction, uploadOfferImageAction } from "../actions";
 import { offerSchema } from "../schemas";
@@ -117,10 +118,11 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
     }
 
     setUploadError(null);
-    const uploadData = new FormData();
-    uploadData.set("file", file);
 
     startUpload(async () => {
+      const optimized = await resizeImageFile(file, { maxDimension: 1200 });
+      const uploadData = new FormData();
+      uploadData.set("file", optimized);
       const result = await uploadOfferImageAction(uploadData);
 
       if (!result.ok || !result.url) {

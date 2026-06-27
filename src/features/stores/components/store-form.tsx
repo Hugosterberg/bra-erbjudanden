@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { resizeImageFile } from "@/shared/lib/image-resize";
 import { StoreLogo } from "@/shared/ui/store-logo";
 
 import { uploadStoreLogoAction } from "../actions";
@@ -40,10 +41,11 @@ export function StoreForm({ store, action }: StoreFormProps) {
     }
 
     setUploadError(null);
-    const formData = new FormData();
-    formData.set("file", file);
 
     startUpload(async () => {
+      const optimized = await resizeImageFile(file, { maxDimension: 512 });
+      const formData = new FormData();
+      formData.set("file", optimized);
       const result = await uploadStoreLogoAction(formData);
 
       if (!result.ok || !result.url) {
