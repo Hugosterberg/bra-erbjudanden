@@ -2,7 +2,6 @@ import { Tag } from "lucide-react";
 
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
-import { NewsletterSignupPanel } from "@/features/subscribers/components/newsletter-signup-panel";
 import { createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -38,9 +37,6 @@ export default async function OffersPage() {
           <AffiliateDisclosure />
         </div>
         <OfferGrid offers={offers} />
-        <div className="mt-10">
-          <NewsletterSignupPanel source="offers-page" />
-        </div>
       </section>
     </>
   );

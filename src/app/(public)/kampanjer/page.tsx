@@ -2,7 +2,6 @@ import { Megaphone } from "lucide-react";
 
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
-import { NewsletterSignupPanel } from "@/features/subscribers/components/newsletter-signup-panel";
 import { createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -36,13 +35,6 @@ export default async function CampaignsPage() {
       />
       <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
         <OfferGrid offers={offers} />
-        <div className="mt-10">
-          <NewsletterSignupPanel
-            source="campaigns-page"
-            title="Bevaka nya kampanjer"
-            text="Skriv upp dig så missar du inte när en ny kampanj blir värd att lyfta."
-          />
-        </div>
         <div className="mt-8">
           <AffiliateDisclosure />
         </div>

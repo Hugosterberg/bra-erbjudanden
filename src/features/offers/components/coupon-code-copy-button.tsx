@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -11,12 +11,55 @@ type CouponCodeCopyButtonProps = {
   codeClassName?: string;
 };
 
+const MAX_FONT_PX = 18;
+const MIN_FONT_PX = 10;
+
 export function CouponCodeCopyButton({
   code,
   className,
   codeClassName,
 }: CouponCodeCopyButtonProps) {
   const [copied, setCopied] = useState(false);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [fontSize, setFontSize] = useState(MAX_FONT_PX);
+
+  // Shrinks the code to always fit on a single line within the available
+  // width, regardless of code length or screen size.
+  useLayoutEffect(() => {
+    const container = measureRef.current;
+    const text = textRef.current;
+
+    if (!container || !text) {
+      return;
+    }
+
+    const fit = () => {
+      const available = container.clientWidth;
+
+      if (available === 0) {
+        return;
+      }
+
+      text.style.fontSize = `${MAX_FONT_PX}px`;
+      const naturalWidth = text.scrollWidth;
+
+      if (naturalWidth <= available) {
+        setFontSize(MAX_FONT_PX);
+        return;
+      }
+
+      const scaled = Math.floor((MAX_FONT_PX * available) / naturalWidth);
+      setFontSize(Math.max(MIN_FONT_PX, scaled));
+    };
+
+    fit();
+
+    const observer = new ResizeObserver(fit);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [code]);
 
   useEffect(() => {
     if (!copied) {
@@ -57,13 +100,17 @@ export function CouponCodeCopyButton({
         className,
       )}
     >
-      <span
-        className={cn(
-          "min-w-0 font-mono text-base font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]",
-          codeClassName,
-        )}
-      >
-        {code}
+      <span ref={measureRef} className="min-w-0 flex-1 overflow-hidden">
+        <span
+          ref={textRef}
+          style={{ fontSize: `${fontSize}px` }}
+          className={cn(
+            "block whitespace-nowrap font-mono font-semibold leading-tight tracking-tight text-foreground",
+            codeClassName,
+          )}
+        >
+          {code}
+        </span>
       </span>
       <span className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground transition-colors group-hover:text-primary">
         {copied ? (

@@ -2,7 +2,6 @@ import { TicketPercent } from "lucide-react";
 
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
-import { NewsletterSignupPanel } from "@/features/subscribers/components/newsletter-signup-panel";
 import { createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -36,13 +35,6 @@ export default async function DiscountCodesPage() {
       />
       <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
         <OfferGrid offers={offers} />
-        <div className="mt-10">
-          <NewsletterSignupPanel
-            source="discount-codes-page"
-            title="Få nya rabattkoder innan du behöver leta"
-            text="Vi skickar ett kort urval när nya koder är värda din uppmärksamhet."
-          />
-        </div>
         <div className="mt-8">
           <AffiliateDisclosure />
         </div>

@@ -18,7 +18,6 @@ import { compareByDiscount } from "@/features/offers/format";
 import { findActiveOffers } from "@/features/offers/queries";
 import { CategoryStrip } from "@/features/categories/components/category-strip";
 import { findActiveCategories } from "@/features/categories/queries";
-import { DealSignupForm } from "@/features/subscribers/components/deal-signup-form";
 import { createAbsoluteUrl, createJsonLd, createMetadata } from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 
@@ -236,26 +235,6 @@ export default async function HomePage() {
             <OfferList offers={otherOffers} />
           </div>
         ) : null}
-      </section>
-
-      <section id="bevakning" className="border-y border-border/70 bg-muted/35">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center">
-          <div className="space-y-3">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm ring-1 ring-primary/20">
-              <BellRing className="size-5" />
-            </div>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Få ett kort urval när något riktigt bra dyker upp
-            </h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Ingen daglig spam. Bara en enkel bevakning för erbjudanden som
-              förtjänar lite extra uppmärksamhet.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-card p-6 shadow-soft ring-1 ring-foreground/10">
-            <DealSignupForm source="homepage-bottom" />
-          </div>
-        </div>
       </section>
 
       <script
