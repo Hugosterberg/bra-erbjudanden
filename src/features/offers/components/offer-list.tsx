@@ -85,8 +85,8 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
               </div>
             </div>
 
-            <div className="grid content-start gap-2 text-center">
-              <div className="-mt-1 mb-1 flex flex-wrap items-center justify-center gap-2">
+            <div className="grid content-start gap-2 text-center sm:col-span-2 sm:mx-auto sm:w-full sm:max-w-sm lg:col-span-1 lg:mx-0 lg:max-w-none">
+              <div className="mb-1 flex flex-wrap items-center justify-center gap-2 lg:-mt-1">
                 {offer.is_featured ? (
                   <Badge className="gap-1">
                     <Sparkles className="size-3" />
