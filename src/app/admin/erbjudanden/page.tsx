@@ -57,7 +57,8 @@ export default async function AdminOffersPage() {
                   <TableHead>Rabatt</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Ranking</TableHead>
-                  <TableHead>Klick</TableHead>
+                  <TableHead>Klick hemsida</TableHead>
+                  <TableHead>Klick rabattkod</TableHead>
                   <TableHead className="text-right">Åtgärder</TableHead>
                 </TableRow>
               </TableHeader>
@@ -72,7 +73,8 @@ export default async function AdminOffersPage() {
                       <StatusBadge status={offer.status} />
                     </TableCell>
                     <TableCell>{offer.rank_position}</TableCell>
-                    <TableCell>{offer.click_count ?? 0}</TableCell>
+                    <TableCell>{offer.website_click_count ?? 0}</TableCell>
+                    <TableCell>{offer.code_click_count ?? 0}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" asChild>

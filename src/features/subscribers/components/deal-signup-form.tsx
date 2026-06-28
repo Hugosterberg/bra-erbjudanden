@@ -26,13 +26,14 @@ export function DealSignupForm({ source = "homepage" }: DealSignupFormProps) {
 
   async function submitSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setIsPending(true);
     setState(initialSubscriberState);
 
     try {
       const response = await fetch("/api/nyhetsbrev", {
         method: "POST",
-        body: new FormData(event.currentTarget),
+        body: new FormData(form),
         headers: {
           Accept: "application/json",
         },
@@ -42,7 +43,7 @@ export function DealSignupForm({ source = "homepage" }: DealSignupFormProps) {
       setState(result);
 
       if (result.ok) {
-        event.currentTarget.reset();
+        form.reset();
       }
     } catch {
       setState({

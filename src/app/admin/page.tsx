@@ -1,4 +1,4 @@
-import { BarChart3, MailCheck, MousePointerClick, Store, Tags } from "lucide-react";
+import { BarChart3, MailCheck, MousePointerClick, Store, Tags, TicketPercent } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/features/admin/auth";
@@ -23,13 +23,21 @@ export default async function AdminDashboardPage() {
     findAdminCategories(),
     findSubscriberStats(),
   ]);
-  const clicks = offers.reduce((sum, offer) => sum + (offer.click_count ?? 0), 0);
+  const websiteClicks = offers.reduce(
+    (sum, offer) => sum + (offer.website_click_count ?? 0),
+    0,
+  );
+  const codeClicks = offers.reduce(
+    (sum, offer) => sum + (offer.code_click_count ?? 0),
+    0,
+  );
 
   const stats = [
     { label: "Erbjudanden", value: offers.length, icon: Tags },
     { label: "Butiker", value: stores.length, icon: Store },
     { label: "Kategorier", value: categories.length, icon: BarChart3 },
-    { label: "Klick", value: clicks, icon: MousePointerClick },
+    { label: "Klick hemsida", value: websiteClicks, icon: MousePointerClick },
+    { label: "Klick rabattkod", value: codeClicks, icon: TicketPercent },
     { label: "Prenumeranter", value: subscriberStats.activeCount, icon: MailCheck },
   ];
 
@@ -42,7 +50,7 @@ export default async function AdminDashboardPage() {
             Enkel status för innehåll, ranking och klickmätning.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (

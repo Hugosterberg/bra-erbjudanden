@@ -3,10 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
+import { recordCouponCopyAction } from "@/features/tracking/actions";
 import { cn } from "@/lib/utils";
 
 type CouponCodeCopyButtonProps = {
   code: string;
+  offerId: string;
   className?: string;
   codeClassName?: string;
 };
@@ -16,6 +18,7 @@ const MIN_FONT_PX = 12;
 
 export function CouponCodeCopyButton({
   code,
+  offerId,
   className,
   codeClassName,
 }: CouponCodeCopyButtonProps) {
@@ -119,6 +122,9 @@ export function CouponCodeCopyButton({
       document.body.removeChild(textArea);
       setCopied(true);
     }
+
+    // Fire-and-forget: tracking must never block or break the copy UX.
+    void recordCouponCopyAction(offerId).catch(() => {});
   }
 
   return (

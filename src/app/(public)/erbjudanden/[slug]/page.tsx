@@ -140,6 +140,7 @@ export default async function OfferPage({ params }: OfferPageProps) {
           {offer.discount_code ? (
             <CouponCodeCopyButton
               code={offer.discount_code}
+              offerId={offer.id}
               className="py-3"
               codeClassName="text-xl"
             />

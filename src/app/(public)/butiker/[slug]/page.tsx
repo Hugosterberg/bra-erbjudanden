@@ -41,6 +41,7 @@ export default async function StorePage({ params }: StorePageProps) {
         title={store.name}
         description={store.description ?? "Aktuella erbjudanden och kampanjer."}
         icon={Store}
+        backLink={{ href: "/butiker", label: "Tillbaka till alla butiker" }}
         stats={[
           { value: offers.length, label: "aktiva erbjudanden" },
           { value: codeCount, label: "rabattkoder" },

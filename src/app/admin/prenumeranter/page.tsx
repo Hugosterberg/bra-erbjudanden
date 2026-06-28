@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
+import { DeleteSubscriberButton } from "@/features/subscribers/components/delete-subscriber-button";
 import { findAdminSubscribers } from "@/features/subscribers/queries";
 import { createMetadata } from "@/shared/lib/seo";
 
@@ -50,6 +51,7 @@ export default async function AdminSubscribersPage() {
                   <TableHead>Alla källor</TableHead>
                   <TableHead>Registreringar</TableHead>
                   <TableHead>Senast</TableHead>
+                  <TableHead className="text-right">Åtgärder</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -72,11 +74,19 @@ export default async function AdminSubscribersPage() {
                       </TableCell>
                       <TableCell>{subscriber.signup_count}</TableCell>
                       <TableCell>{formatDate(subscriber.last_signup_at)}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-end">
+                          <DeleteSubscriberButton
+                            id={subscriber.id}
+                            email={subscriber.email}
+                          />
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       Inga prenumeranter ännu.
                     </TableCell>
                   </TableRow>

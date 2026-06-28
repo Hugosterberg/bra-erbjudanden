@@ -251,6 +251,45 @@
     transform: translateX(130%) skewX(-12deg);
   }
 
+  /* Savings badge: gentle, continuous attention treatment */
+  .deal-save-badge {
+    position: relative;
+    overflow: hidden;
+    animation: save-pulse 2.8s ease-in-out infinite;
+  }
+  @keyframes save-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 oklch(0.55 0.14 150 / 0);
+    }
+    50% {
+      box-shadow: 0 0 0 5px oklch(0.55 0.14 150 / 0.14);
+    }
+  }
+  /* Periodic light sweep across the savings badge */
+  .deal-save-shine {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      100deg,
+      transparent 35%,
+      color-mix(in oklch, var(--primary) 28%, transparent) 50%,
+      transparent 65%
+    );
+    animation: save-sweep 3.4s ease-in-out infinite;
+  }
+  @keyframes save-sweep {
+    0%,
+    55% {
+      transform: translateX(-130%) skewX(-12deg);
+    }
+    85%,
+    100% {
+      transform: translateX(130%) skewX(-12deg);
+    }
+  }
+
   /* Attention pulse when a section is navigated to via #hash */
   @keyframes target-pop {
     0% {
@@ -279,8 +318,12 @@
     .animate-float-tag-b {
       animation: none;
     }
-    .deal-shine {
+    .deal-shine,
+    .deal-save-shine {
       display: none;
+    }
+    .deal-save-badge {
+      animation: none;
     }
     #bevakning:target .bevaka-card {
       animation: none;

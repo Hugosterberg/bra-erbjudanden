@@ -70,9 +70,10 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
     }
 
     if (existing) {
-      const signupSources = existing.signup_sources.includes(source)
-        ? existing.signup_sources
-        : [...existing.signup_sources, source];
+      const existingSources = existing.signup_sources ?? [];
+      const signupSources = existingSources.includes(source)
+        ? existingSources
+        : [...existingSources, source];
 
       const { error } = await supabase
         .from("deal_subscribers")

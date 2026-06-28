@@ -124,17 +124,29 @@ export async function findAdminOffers() {
     .order("rank_position", { ascending: true })
     .order("updated_at", { ascending: false });
 
-  const { data: clickEvents } = await supabase.from("click_events").select("offer_id");
-  const counts = new Map<string, number>();
+  const { data: clickEvents } = await supabase
+    .from("click_events")
+    .select("offer_id, click_type");
+
+  const websiteCounts = new Map<string, number>();
+  const codeCounts = new Map<string, number>();
 
   for (const event of clickEvents ?? []) {
-    counts.set(event.offer_id, (counts.get(event.offer_id) ?? 0) + 1);
+    const target = event.click_type === "discount_code" ? codeCounts : websiteCounts;
+    target.set(event.offer_id, (target.get(event.offer_id) ?? 0) + 1);
   }
 
-  return mapOfferRelations(offers).map((offer) => ({
-    ...offer,
-    click_count: counts.get(offer.id) ?? 0,
-  }));
+  return mapOfferRelations(offers).map((offer) => {
+    const websiteClicks = websiteCounts.get(offer.id) ?? 0;
+    const codeClicks = codeCounts.get(offer.id) ?? 0;
+
+    return {
+      ...offer,
+      website_click_count: websiteClicks,
+      code_click_count: codeClicks,
+      click_count: websiteClicks + codeClicks,
+    };
+  });
 }
 
 export async function findAdminOfferById(id: string) {

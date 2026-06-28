@@ -11,6 +11,8 @@ export type OfferWithRelations = Offer & {
   store: Pick<Store, "id" | "name" | "slug" | "logo_url" | "website_url"> | null;
   category: Pick<Category, "id" | "name" | "slug"> | null;
   click_count?: number;
+  website_click_count?: number;
+  code_click_count?: number;
 };
 
 export type OfferRedirectTarget = Pick<

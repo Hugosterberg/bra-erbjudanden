@@ -78,7 +78,7 @@ export function FeaturedOfferCard({ offer }: { offer: OfferWithRelations }) {
             className="w-full"
           />
           {offer.discount_code ? (
-            <CouponCodeCopyButton code={offer.discount_code} />
+            <CouponCodeCopyButton code={offer.discount_code} offerId={offer.id} />
           ) : null}
           <Button
             asChild

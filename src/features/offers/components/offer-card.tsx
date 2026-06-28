@@ -77,7 +77,7 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
           className="w-full"
         />
         {offer.discount_code ? (
-          <CouponCodeCopyButton code={offer.discount_code} />
+          <CouponCodeCopyButton code={offer.discount_code} offerId={offer.id} />
         ) : null}
         <Button asChild className="h-auto w-full whitespace-normal py-2 text-center leading-tight">
           <Link href={`/go/${offer.id}`} rel="sponsored nofollow">

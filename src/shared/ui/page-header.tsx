@@ -1,4 +1,5 @@
-import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -7,12 +8,18 @@ type PageHeaderStat = {
   value: number | string;
 };
 
+type PageHeaderBackLink = {
+  href: string;
+  label: string;
+};
+
 type PageHeaderProps = {
   eyebrow: string;
   title: string;
   description: string;
   icon?: LucideIcon;
   stats?: PageHeaderStat[];
+  backLink?: PageHeaderBackLink;
   className?: string;
 };
 
@@ -22,6 +29,7 @@ export function PageHeader({
   description,
   icon: Icon,
   stats,
+  backLink,
   className,
 }: PageHeaderProps) {
   return (
@@ -34,6 +42,15 @@ export function PageHeader({
       <div className="pointer-events-none absolute inset-0 bg-hero-glow" />
       <div className="pointer-events-none absolute inset-0 bg-dot-grid opacity-50" />
       <div className="relative mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
+        {backLink ? (
+          <Link
+            href={backLink.href}
+            className="group mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+            {backLink.label}
+          </Link>
+        ) : null}
         <div className="max-w-3xl space-y-4">
           <div className="flex items-center gap-2">
             {Icon ? (

@@ -39,7 +39,7 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
         {offers.map((offer) => (
           <li
             key={offer.id}
-            className="group grid gap-4 p-4 transition-colors hover:bg-muted/40 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:p-5 lg:grid-cols-[9.5rem_minmax(0,1fr)_17rem] lg:items-center"
+            className="group grid gap-4 p-4 transition-colors hover:bg-muted/40 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:p-5 lg:grid-cols-[9.5rem_minmax(0,1fr)_17rem] lg:items-stretch"
           >
             <OfferMedia
               imageUrl={offer.image_url}
@@ -49,18 +49,7 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
               chipTextClassName="text-2xl"
             />
 
-            <div className="min-w-0 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                {offer.is_featured ? (
-                  <Badge className="gap-1">
-                    <Sparkles className="size-3" />
-                    Utvald
-                  </Badge>
-                ) : null}
-                <Badge variant="secondary">{formatRedemptionType(offer.redemption_type)}</Badge>
-                {offer.category ? <Badge variant="outline">{offer.category.name}</Badge> : null}
-              </div>
-
+            <div className="flex min-w-0 flex-col gap-2">
               <Link href={`/erbjudanden/${offer.slug}`} className="block">
                 <h2 className="line-clamp-2 text-lg font-semibold leading-6 tracking-tight transition-colors group-hover:text-primary">
                   {offer.title}
@@ -68,12 +57,12 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
               </Link>
 
               {offer.description ? (
-                <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
                   {offer.description}
                 </p>
               ) : null}
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 text-sm text-muted-foreground">
                 {offer.store ? (
                   <span className="inline-flex items-center gap-1.5">
                     <StoreLogo
@@ -89,18 +78,36 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
                   <Timer className="size-4 text-primary" />
                   {formatOfferValidity(offer.ends_at)}
                 </span>
+                {offer.category ? (
+                  <Badge variant="outline">{offer.category.name}</Badge>
+                ) : null}
                 <OfferTerms terms={offer.terms} />
               </div>
             </div>
 
-            <div className="grid gap-2 text-center">
+            <div className="grid content-start gap-2 text-center">
+              <div className="-mt-1 mb-1 flex flex-wrap items-center justify-center gap-2">
+                {offer.is_featured ? (
+                  <Badge className="gap-1">
+                    <Sparkles className="size-3" />
+                    Utvald
+                  </Badge>
+                ) : null}
+                <Badge variant="secondary">
+                  {formatRedemptionType(offer.redemption_type)}
+                </Badge>
+              </div>
               <OfferDiscountBadge
                 discountType={offer.discount_type}
                 discountValue={offer.discount_value}
-                className="w-full"
+                className="my-1.5 w-full"
               />
               {offer.discount_code ? (
-                <CouponCodeCopyButton code={offer.discount_code} className="w-full" />
+                <CouponCodeCopyButton
+                  code={offer.discount_code}
+                  offerId={offer.id}
+                  className="w-full"
+                />
               ) : null}
               <Button asChild className="h-auto w-full whitespace-normal py-2 text-center leading-tight">
                 <Link href={`/go/${offer.id}`} rel="sponsored nofollow">

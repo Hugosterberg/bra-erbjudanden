@@ -125,6 +125,7 @@ export type Database = {
           id: string;
           offer_id: string;
           store_id: string | null;
+          click_type: "discount_code" | "website";
           clicked_at: string;
           referrer: string | null;
           user_agent: string | null;
@@ -134,6 +135,7 @@ export type Database = {
           id?: string;
           offer_id: string;
           store_id?: string | null;
+          click_type?: "discount_code" | "website";
           clicked_at?: string;
           referrer?: string | null;
           user_agent?: string | null;
@@ -205,6 +207,7 @@ export type Database = {
       redemption_type: "discount_code" | "direct_link";
       entity_status: "active" | "inactive" | "archived";
       subscriber_status: "active" | "unsubscribed";
+      click_type: "discount_code" | "website";
     };
     CompositeTypes: Record<string, never>;
   };
