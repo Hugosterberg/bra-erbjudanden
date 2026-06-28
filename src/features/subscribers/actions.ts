@@ -5,17 +5,6 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/features/admin/auth";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
-import { initialSubscriberState, registerDealSubscriber, type SubscriberResult } from "./subscribe";
-
-export { initialSubscriberState };
-
-export async function subscribeToDealsAction(
-  _state: SubscriberResult,
-  formData: FormData,
-): Promise<SubscriberResult> {
-  return registerDealSubscriber(formData);
-}
-
 export type DeleteSubscriberResult = {
   ok: boolean;
   message?: string;
