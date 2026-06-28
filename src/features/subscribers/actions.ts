@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/features/admin/auth";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
@@ -18,12 +19,22 @@ export async function subscribeToDealsAction(
 
 export async function deleteSubscriberAction(id: string) {
   await requireAdmin();
+
+  if (!id) {
+    redirect("/admin/prenumeranter");
+  }
+
   const supabase = getSupabaseAdminClient();
 
   if (supabase) {
-    await supabase.from("deal_subscribers").delete().eq("id", id);
+    const { error } = await supabase.from("deal_subscribers").delete().eq("id", id);
+
+    if (error) {
+      console.error("[admin] Subscriber delete failed", error);
+    }
   }
 
   revalidatePath("/admin/prenumeranter");
   revalidatePath("/admin");
+  redirect("/admin/prenumeranter");
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent } from "react";
+import { useTransition } from "react";
 import { Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,18 +12,29 @@ type DeleteSubscriberButtonProps = {
 };
 
 export function DeleteSubscriberButton({ id, email }: DeleteSubscriberButtonProps) {
-  function confirmDelete(event: FormEvent<HTMLFormElement>) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
     if (!window.confirm(`Ta bort ${email} permanent från databasen?`)) {
-      event.preventDefault();
+      return;
     }
+
+    startTransition(() => {
+      void deleteSubscriberAction(id);
+    });
   }
 
   return (
-    <form action={deleteSubscriberAction.bind(null, id)} onSubmit={confirmDelete}>
-      <Button variant="outline" size="sm" type="submit" aria-label={`Ta bort ${email}`}>
-        <Trash2 className="size-4" />
-        Ta bort
-      </Button>
-    </form>
+    <Button
+      variant="outline"
+      size="sm"
+      type="button"
+      disabled={isPending}
+      aria-label={`Ta bort ${email}`}
+      onClick={handleDelete}
+    >
+      <Trash2 className="size-4" />
+      {isPending ? "Tar bort..." : "Ta bort"}
+    </Button>
   );
 }
