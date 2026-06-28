@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/features/admin/auth";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
@@ -17,24 +16,33 @@ export async function subscribeToDealsAction(
   return registerDealSubscriber(formData);
 }
 
-export async function deleteSubscriberAction(id: string) {
+export type DeleteSubscriberResult = {
+  ok: boolean;
+  message?: string;
+};
+
+export async function deleteSubscriberAction(id: string): Promise<DeleteSubscriberResult> {
   await requireAdmin();
 
   if (!id) {
-    redirect("/admin/prenumeranter");
+    return { ok: false, message: "Ingen prenumerant angiven." };
   }
 
   const supabase = getSupabaseAdminClient();
 
-  if (supabase) {
-    const { error } = await supabase.from("deal_subscribers").delete().eq("id", id);
+  if (!supabase) {
+    return { ok: false, message: "Databasen är inte konfigurerad." };
+  }
 
-    if (error) {
-      console.error("[admin] Subscriber delete failed", error);
-    }
+  const { error } = await supabase.from("deal_subscribers").delete().eq("id", id);
+
+  if (error) {
+    console.error("[admin] Subscriber delete failed", error);
+    return { ok: false, message: "Kunde inte ta bort prenumeranten." };
   }
 
   revalidatePath("/admin/prenumeranter");
   revalidatePath("/admin");
-  redirect("/admin/prenumeranter");
+
+  return { ok: true };
 }

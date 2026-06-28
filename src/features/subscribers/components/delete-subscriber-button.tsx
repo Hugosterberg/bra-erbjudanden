@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Trash2 } from "lucide-react";
 
@@ -12,6 +13,7 @@ type DeleteSubscriberButtonProps = {
 };
 
 export function DeleteSubscriberButton({ id, email }: DeleteSubscriberButtonProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleDelete() {
@@ -19,8 +21,15 @@ export function DeleteSubscriberButton({ id, email }: DeleteSubscriberButtonProp
       return;
     }
 
-    startTransition(() => {
-      void deleteSubscriberAction(id);
+    startTransition(async () => {
+      const result = await deleteSubscriberAction(id);
+
+      if (!result.ok) {
+        window.alert(result.message ?? "Kunde inte ta bort prenumeranten.");
+        return;
+      }
+
+      router.refresh();
     });
   }
 
