@@ -120,7 +120,7 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
     setUploadError(null);
 
     startUpload(async () => {
-      const optimized = await resizeImageFile(file, { maxDimension: 1200 });
+      const optimized = await resizeImageFile(file, { maxDimension: 1600 });
       const uploadData = new FormData();
       uploadData.set("file", optimized);
       const result = await uploadOfferImageAction(uploadData);

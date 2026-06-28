@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
 import { OfferTerms } from "./offer-terms";
 import { StoreLogo } from "@/shared/ui/store-logo";
@@ -38,13 +39,13 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
         {offers.map((offer) => (
           <li
             key={offer.id}
-            className="group grid gap-4 p-4 transition-colors hover:bg-muted/40 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:p-5 lg:grid-cols-[6.5rem_minmax(0,1fr)_13rem] lg:items-center"
+            className="group grid gap-4 p-4 transition-colors hover:bg-muted/40 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:p-5 lg:grid-cols-[9.5rem_minmax(0,1fr)_17rem] lg:items-center"
           >
             <OfferMedia
               imageUrl={offer.image_url}
               title={offer.title}
               discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
-              className="h-20 w-24"
+              className="h-36 w-full"
               chipTextClassName="text-2xl"
             />
 
@@ -66,6 +67,12 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
                 </h2>
               </Link>
 
+              {offer.description ? (
+                <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                  {offer.description}
+                </p>
+              ) : null}
+
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 {offer.store ? (
                   <span className="inline-flex items-center gap-1.5">
@@ -82,19 +89,23 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
                   <Timer className="size-4 text-primary" />
                   {formatOfferValidity(offer.ends_at)}
                 </span>
+                <OfferTerms terms={offer.terms} />
               </div>
-
-              <OfferTerms terms={offer.terms} />
             </div>
 
             <div className="grid gap-2 text-center">
+              <OfferDiscountBadge
+                discountType={offer.discount_type}
+                discountValue={offer.discount_value}
+                className="w-full"
+              />
               {offer.discount_code ? (
                 <CouponCodeCopyButton code={offer.discount_code} className="w-full" />
               ) : null}
-              <Button asChild className="w-full whitespace-normal text-center leading-tight">
+              <Button asChild className="h-auto w-full whitespace-normal py-2 text-center leading-tight">
                 <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
                   {formatOfferCtaLabel(offer)}
-                  <ArrowUpRight className="size-4" />
+                  <ArrowUpRight className="size-4 shrink-0" />
                 </Link>
               </Button>
             </div>

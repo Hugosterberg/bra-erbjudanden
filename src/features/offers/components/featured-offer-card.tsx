@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
 import { OfferTerms } from "./offer-terms";
 import { StoreLogo } from "@/shared/ui/store-logo";
@@ -45,7 +46,7 @@ export function FeaturedOfferCard({ offer }: { offer: OfferWithRelations }) {
             imageUrl={offer.image_url}
             title={offer.title}
             discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
-            className="size-24"
+            className="size-32"
             chipTextClassName="text-2xl"
           />
         </div>
@@ -71,13 +72,18 @@ export function FeaturedOfferCard({ offer }: { offer: OfferWithRelations }) {
         <OfferTerms terms={offer.terms} />
 
         <div className="grid gap-2">
+          <OfferDiscountBadge
+            discountType={offer.discount_type}
+            discountValue={offer.discount_value}
+            className="w-full"
+          />
           {offer.discount_code ? (
-            <CouponCodeCopyButton code={offer.discount_code} codeClassName="text-lg" />
+            <CouponCodeCopyButton code={offer.discount_code} />
           ) : null}
           <Button
             asChild
             size="lg"
-            className="relative h-11 w-full overflow-hidden whitespace-normal text-center leading-tight"
+            className="relative h-auto min-h-11 w-full overflow-hidden whitespace-normal py-2 text-center leading-tight"
           >
             <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
               <span

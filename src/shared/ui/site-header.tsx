@@ -14,7 +14,7 @@ import { MainNav } from "@/shared/ui/main-nav";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 
 const navigation = [
-  { href: "/erbjudanden", label: "Erbjudanden" },
+  { href: "/#erbjudanden", label: "Erbjudanden" },
   { href: "/kampanjer", label: "Kampanjer" },
   { href: "/butiker", label: "Butiker" },
   { href: "/kategorier", label: "Kategorier" },
@@ -48,7 +48,7 @@ export function SiteHeader() {
         <div className="hidden items-center gap-1 md:flex">
           <ThemeToggle />
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/erbjudanden">
+            <Link href="/#erbjudanden">
               <Search className="size-4" />
               Hitta deal
             </Link>
@@ -81,7 +81,7 @@ export function SiteHeader() {
                 </Button>
               ))}
               <Button className="mt-3 justify-start" asChild>
-                <Link href="/erbjudanden">
+                <Link href="/#erbjudanden">
                   <ShieldCheck className="size-4" />
                   Se utvalda erbjudanden
                 </Link>

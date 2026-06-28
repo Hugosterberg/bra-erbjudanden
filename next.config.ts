@@ -11,10 +11,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        // Rabattkoder was a subset of Erbjudanden; consolidated into one page.
+        // Rabattkoder and the standalone Erbjudanden page were consolidated into
+        // the offers section on the homepage.
         source: "/rabattkoder",
-        destination: "/erbjudanden",
+        destination: "/#erbjudanden",
         permanent: true,
+      },
+      {
+        source: "/erbjudanden",
+        destination: "/#erbjudanden",
+        permanent: false,
       },
     ];
   },

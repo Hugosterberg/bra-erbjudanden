@@ -211,7 +211,10 @@ export default async function HomePage() {
 
       <CategoryStrip categories={categoriesWithCounts} />
 
-      <section id="erbjudanden" className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+      <section
+        id="erbjudanden"
+        className="scroll-mt-header mx-auto w-full max-w-6xl px-4 py-12 sm:px-6"
+      >
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-primary">I samarbete</p>

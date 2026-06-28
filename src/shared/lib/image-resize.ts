@@ -38,7 +38,7 @@ function loadImage(url: string) {
 // unsupported formats or if anything goes wrong.
 export async function resizeImageFile(
   file: File,
-  { maxDimension, quality = 0.82 }: ResizeOptions,
+  { maxDimension, quality = 0.92 }: ResizeOptions,
 ): Promise<File> {
   if (typeof document === "undefined" || !isResizable(file)) {
     return file;

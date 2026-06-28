@@ -12,13 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     findActiveCategories(),
   ]);
 
-  const staticRoutes = [
-    "",
-    "/erbjudanden",
-    "/kampanjer",
-    "/butiker",
-    "/kategorier",
-  ].map((path) => ({
+  const staticRoutes = ["", "/kampanjer", "/butiker", "/kategorier"].map((path) => ({
     url: createAbsoluteUrl(path),
     lastModified: new Date(),
   }));

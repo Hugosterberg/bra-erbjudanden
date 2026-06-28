@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
 import { OfferTerms } from "./offer-terms";
 import { StoreLogo } from "@/shared/ui/store-logo";
@@ -44,7 +45,7 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
             imageUrl={offer.image_url}
             title={offer.title}
             discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
-            className="size-20"
+            className="size-28"
           />
         </div>
       </CardHeader>
@@ -70,13 +71,18 @@ export function OfferCard({ offer }: { offer: OfferWithRelations }) {
         <OfferTerms terms={offer.terms} />
       </CardContent>
       <CardFooter className="mt-auto grid gap-2">
+        <OfferDiscountBadge
+          discountType={offer.discount_type}
+          discountValue={offer.discount_value}
+          className="w-full"
+        />
         {offer.discount_code ? (
-          <CouponCodeCopyButton code={offer.discount_code} codeClassName="text-lg" />
+          <CouponCodeCopyButton code={offer.discount_code} />
         ) : null}
-        <Button asChild className="w-full whitespace-normal text-center leading-tight">
+        <Button asChild className="h-auto w-full whitespace-normal py-2 text-center leading-tight">
           <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
             {formatOfferCtaLabel(offer)}
-            <ArrowUpRight className="size-4" />
+            <ArrowUpRight className="size-4 shrink-0" />
           </Link>
         </Button>
       </CardFooter>

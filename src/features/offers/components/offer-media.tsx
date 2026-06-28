@@ -10,9 +10,9 @@ type OfferMediaProps = {
   chipTextClassName?: string;
 };
 
-// Renders the offer's product/brand image with the discount as a corner badge.
-// When no image is uploaded it falls back to the discount chip so the layout
-// (and the discount emphasis) stays intact.
+// Renders the offer's product/brand image. The discount is shown separately
+// via OfferDiscountBadge, so the image stays clean and high quality. When no
+// image is uploaded it falls back to a discount chip to keep the layout intact.
 export function OfferMedia({
   imageUrl,
   title,
@@ -32,16 +32,10 @@ export function OfferMedia({
           src={imageUrl}
           alt={title}
           fill
-          sizes="128px"
-          className="object-cover"
+          sizes="(min-width: 1024px) 160px, 128px"
+          className="object-contain p-2"
           unoptimized
         />
-        <span
-          className="absolute left-1.5 top-1.5 rounded-md bg-primary/95 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground shadow-sm backdrop-blur"
-          data-numeric
-        >
-          {discountLabel}
-        </span>
       </div>
     );
   }
