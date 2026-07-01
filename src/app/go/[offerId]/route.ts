@@ -13,7 +13,9 @@ export async function GET(_request: NextRequest, { params }: GoRouteProps) {
   const offer = await findOfferRedirectTarget(offerId);
 
   if (!offer) {
-    redirect("/erbjudanden");
+    // The offer is gone or expired; send visitors straight to the live list
+    // instead of bouncing through the /erbjudanden permanent redirect.
+    redirect("/#erbjudanden");
   }
 
   await recordAffiliateClick(offer);

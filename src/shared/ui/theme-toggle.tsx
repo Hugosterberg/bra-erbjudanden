@@ -1,55 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-type Theme = "light" | "dark";
+// Theme preference is a pure UI setting persisted in a cookie (read by the
+// inline script in the root layout before hydration to avoid theme flashes).
+const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-function getPreferredTheme(): Theme {
-  if (typeof window === "undefined") {
-    return "light";
-  }
+function subscribeToThemeClass(callback: () => void) {
+  const observer = new MutationObserver(callback);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
 
-  const stored = window.localStorage.getItem("theme");
-
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-
-  // Dark mode is the default experience; users opt into light.
-  return "dark";
+  return () => observer.disconnect();
 }
 
-function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
+function getIsDark() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function getServerIsDark() {
+  // Dark mode is the default experience; users opt into light.
+  return true;
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const preferred = getPreferredTheme();
-    setTheme(preferred);
-    applyTheme(preferred);
-    setMounted(true);
-  }, []);
+  const isDark = useSyncExternalStore(
+    subscribeToThemeClass,
+    getIsDark,
+    getServerIsDark,
+  );
 
   function toggleTheme() {
-    const nextTheme: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    applyTheme(nextTheme);
-    window.localStorage.setItem("theme", nextTheme);
-  }
-
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon-sm" className="size-8" aria-label="Byt tema" disabled>
-        <Moon className="size-4" />
-      </Button>
-    );
+    const nextIsDark = !isDark;
+    document.documentElement.classList.toggle("dark", nextIsDark);
+    document.cookie = `theme=${nextIsDark ? "dark" : "light"}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; samesite=lax`;
   }
 
   return (
@@ -59,9 +48,9 @@ export function ThemeToggle() {
       size="icon-sm"
       className="size-8"
       onClick={toggleTheme}
-      aria-label={theme === "dark" ? "Byt till ljust läge" : "Byt till mörkt läge"}
+      aria-label={isDark ? "Byt till ljust läge" : "Byt till mörkt läge"}
     >
-      {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </Button>
   );
 }

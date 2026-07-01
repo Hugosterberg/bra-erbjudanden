@@ -11,9 +11,15 @@ import {
   formatDiscount,
   formatOfferCtaLabel,
   formatOfferValidity,
+  formatRedemptionType,
 } from "@/features/offers/format";
 import { findActiveOfferBySlug } from "@/features/offers/queries";
-import { createJsonLd, createMetadata } from "@/shared/lib/seo";
+import {
+  createAbsoluteUrl,
+  createBreadcrumbJsonLd,
+  createJsonLd,
+  createMetadata,
+} from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 import { StoreLogo } from "@/shared/ui/store-logo";
 
@@ -79,9 +85,9 @@ export default async function OfferPage({ params }: OfferPageProps) {
             <p className="mt-1 font-medium">{formatOfferValidity(offer.ends_at)}</p>
           </div>
           <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-            <p className="text-sm text-muted-foreground">Ranking</p>
-            <p className="mt-1 font-medium" data-numeric>
-              #{offer.rank_position}
+            <p className="text-sm text-muted-foreground">Typ</p>
+            <p className="mt-1 font-medium">
+              {formatRedemptionType(offer.redemption_type)}
             </p>
           </div>
         </div>
@@ -165,10 +171,31 @@ export default async function OfferPage({ params }: OfferPageProps) {
           "@type": "Offer",
           name: offer.title,
           description: offer.description,
-          url: `/erbjudanden/${offer.slug}`,
-          availabilityEnds: offer.ends_at,
-          seller: offer.store?.name,
+          url: createAbsoluteUrl(`/erbjudanden/${offer.slug}`),
+          ...(offer.image_url ? { image: offer.image_url } : {}),
+          availability: "https://schema.org/InStock",
+          ...(offer.starts_at ? { validFrom: offer.starts_at } : {}),
+          ...(offer.ends_at ? { validThrough: offer.ends_at } : {}),
+          ...(offer.store
+            ? {
+                seller: {
+                  "@type": "Organization",
+                  name: offer.store.name,
+                  url: createAbsoluteUrl(`/butiker/${offer.store.slug}`),
+                },
+              }
+            : {}),
         })}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={createJsonLd(
+          createBreadcrumbJsonLd([
+            { name: "Start", path: "/" },
+            { name: "Erbjudanden", path: "/#erbjudanden" },
+            { name: offer.title, path: `/erbjudanden/${offer.slug}` },
+          ]),
+        )}
       />
     </article>
   );

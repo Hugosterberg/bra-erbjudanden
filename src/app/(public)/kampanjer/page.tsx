@@ -9,9 +9,9 @@ import { PageHeader } from "@/shared/ui/page-header";
 export const revalidate = 300;
 
 export const metadata = createMetadata({
-  title: "Kampanjer",
+  title: "Kampanjer – aktuella deals från svenska butiker",
   description:
-    "Aktuella kampanjer och direktlänkar till utvalda erbjudanden från relevanta butiker.",
+    "Aktuella kampanjer och tidsbegränsade erbjudanden från svenska butiker. Handplockade deals som aktiveras direkt via länk – inga koder behövs.",
   path: "/kampanjer",
 });
 

@@ -4,7 +4,11 @@ import { Store } from "lucide-react";
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { findActiveOffers } from "@/features/offers/queries";
 import { findActiveStoreBySlug } from "@/features/stores/queries";
-import { createMetadata } from "@/shared/lib/seo";
+import {
+  createBreadcrumbJsonLd,
+  createJsonLd,
+  createMetadata,
+} from "@/shared/lib/seo";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StoreLogo } from "@/shared/ui/store-logo";
 
@@ -17,8 +21,12 @@ export async function generateMetadata({ params }: StorePageProps) {
   const store = await findActiveStoreBySlug(slug);
 
   return createMetadata({
-    title: store ? `${store.name} erbjudanden` : "Butik",
-    description: store?.description ?? "Aktuella erbjudanden från vald butik.",
+    title: store
+      ? `${store.name} rabattkoder & erbjudanden`
+      : "Butik",
+    description: store
+      ? `Aktuella rabatter, rabattkoder och kampanjer från ${store.name}. ${store.description ?? "Handplockade erbjudanden – alltid aktiva."}`
+      : "Aktuella erbjudanden från vald butik.",
     path: `/butiker/${slug}`,
   });
 }
@@ -62,6 +70,16 @@ export default async function StorePage({ params }: StorePageProps) {
         </div>
         <OfferGrid offers={offers} />
       </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={createJsonLd(
+          createBreadcrumbJsonLd([
+            { name: "Start", path: "/" },
+            { name: "Butiker", path: "/butiker" },
+            { name: store.name, path: `/butiker/${store.slug}` },
+          ]),
+        )}
+      />
     </>
   );
 }

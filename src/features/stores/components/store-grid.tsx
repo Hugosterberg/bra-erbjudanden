@@ -33,7 +33,7 @@ export function StoreGrid({ stores }: { stores: StoreType[] }) {
 
   return (
     <div className="grid gap-6 sm:grid-cols-2">
-      {stores.map((store) => (
+      {stores.map((store, index) => (
         <Card
           key={store.id}
           className="group relative h-full overflow-hidden rounded-2xl p-0 shadow-none ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-soft hover:ring-primary/20"
@@ -45,6 +45,7 @@ export function StoreGrid({ stores }: { stores: StoreType[] }) {
               screenshotUrl={getWebsiteScreenshotUrl(store.website_url)}
               logoUrl={store.logo_url}
               websiteUrl={store.website_url}
+              priority={index < 2}
             />
           </div>
           <CardContent className="flex flex-1 flex-col p-6">

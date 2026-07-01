@@ -8,8 +8,9 @@ import { PageHeader } from "@/shared/ui/page-header";
 export const revalidate = 300;
 
 export const metadata = createMetadata({
-  title: "Kategorier",
-  description: "Hitta erbjudanden efter kategori.",
+  title: "Kategorier – hitta erbjudanden & rabatter",
+  description:
+    "Bläddra bland kategorier och hitta bra erbjudanden, rabatter och rabattkoder inom det du letar efter – utan att scrolla igenom allt.",
   path: "/kategorier",
 });
 

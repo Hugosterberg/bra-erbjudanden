@@ -18,16 +18,52 @@ import { compareByDiscount } from "@/features/offers/format";
 import { findActiveOffers } from "@/features/offers/queries";
 import { CategoryStrip } from "@/features/categories/components/category-strip";
 import { findActiveCategories } from "@/features/categories/queries";
-import { createAbsoluteUrl, createJsonLd, createMetadata } from "@/shared/lib/seo";
+import { siteConfig } from "@/shared/config/site";
+import {
+  createAbsoluteUrl,
+  createFaqJsonLd,
+  createJsonLd,
+  createMetadata,
+} from "@/shared/lib/seo";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
+import { FaqSection } from "@/shared/ui/faq-section";
 
 export const revalidate = 300;
 
 export const metadata = createMetadata({
-  title: "Alla aktuella erbjudanden",
+  title: "Bra erbjudanden – rabatter, rabattkoder & kampanjer i Sverige",
   description:
-    "Se alla aktiva erbjudanden, rabattkoder och kampanjer på braerbjudanden.se direkt på startsidan.",
+    "Hitta bra erbjudanden idag: handplockade rabatter, rabattkoder och kampanjer från svenska butiker. Alltid aktiva erbjudanden – aldrig utgångna. Spara pengar med braerbjudanden.se.",
+  absoluteTitle: true,
 });
+
+const faqItems = [
+  {
+    question: "Vad är braerbjudanden.se?",
+    answer:
+      "braerbjudanden.se samlar bra erbjudanden, rabatter och rabattkoder från svenska butiker på ett ställe. Vi handplockar och rankar alla deals så att du snabbt hittar det som faktiskt är värt att klicka på.",
+  },
+  {
+    question: "Kostar det något att använda erbjudandena?",
+    answer:
+      "Nej, allt är gratis. Du klickar dig vidare till butiken och rabatten dras av där. Vi kan få provision från butiken när du handlar via våra länkar, men det påverkar aldrig priset för dig.",
+  },
+  {
+    question: "Hur använder jag en rabattkod?",
+    answer:
+      "Klicka på koden för att kopiera den, gå vidare till butiken och klistra in koden i kassan innan du betalar. Rabatten dras av direkt på ditt köp.",
+  },
+  {
+    question: "Är alla erbjudanden aktuella?",
+    answer:
+      "Ja. Vi visar bara aktiva erbjudanden och tar bort kampanjer som gått ut. Varje erbjudande visar dessutom hur länge det gäller.",
+  },
+  {
+    question: "Hur ofta kommer det nya erbjudanden?",
+    answer:
+      "Nya rabatter och kampanjer läggs till löpande. Vill du inte missa något kan du bevaka deals så mailar vi ett kort urval när något riktigt bra dyker upp.",
+  },
+];
 
 const trustItems = [
   {
@@ -123,16 +159,16 @@ export default async function HomePage() {
             </Badge>
             <div className="space-y-4">
               <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">
-                Spara mer utan att leta.{" "}
+                Hitta riktigt{" "}
                 <span className="text-gradient-primary animate-gradient-pan">
-                  Handplockade
+                  bra erbjudanden
                 </span>{" "}
-                erbjudanden.
+                utan att leta.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                En renare översikt över rabattkoder, kampanjer och deals som är
-                enkla att jämföra. Mindre brus, tydligare val och bara erbjudanden
-                som faktiskt är värda att klicka på.
+                Handplockade rabatter, rabattkoder och kampanjer från svenska
+                butiker – enkla att jämföra. Mindre brus, tydligare val och bara
+                erbjudanden som faktiskt är värda att klicka på.
               </p>
             </div>
 
@@ -240,23 +276,32 @@ export default async function HomePage() {
         ) : null}
       </section>
 
+      <FaqSection
+        title="Vanliga frågor om erbjudanden och rabattkoder"
+        items={faqItems}
+      />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={createJsonLd({
           "@context": "https://schema.org",
           "@type": "WebSite",
+          "@id": createAbsoluteUrl("/#website"),
           name: "braerbjudanden.se",
+          alternateName: "Bra erbjudanden",
           url: createAbsoluteUrl("/"),
-          potentialAction: {
-            "@type": "SearchAction",
-            target: createAbsoluteUrl("/erbjudanden?q={search_term_string}"),
-            "query-input": "required name=search_term_string",
-          },
+          description: siteConfig.description,
+          inLanguage: "sv-SE",
+          publisher: { "@id": createAbsoluteUrl("/#organization") },
         })}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={createJsonLd(itemListJsonLd)}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={createJsonLd(createFaqJsonLd(faqItems))}
       />
     </div>
   );

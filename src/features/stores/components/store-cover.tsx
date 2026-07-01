@@ -10,6 +10,8 @@ type StoreCoverProps = {
   screenshotUrl: string | null;
   logoUrl?: string | null;
   websiteUrl?: string | null;
+  /** Load eagerly for above-the-fold covers (improves LCP). */
+  priority?: boolean;
 };
 
 export function StoreCover({
@@ -17,6 +19,7 @@ export function StoreCover({
   screenshotUrl,
   logoUrl,
   websiteUrl,
+  priority = false,
 }: StoreCoverProps) {
   const [errored, setErrored] = useState(false);
 
@@ -29,6 +32,7 @@ export function StoreCover({
         sizes="(min-width: 640px) 50vw, 100vw"
         className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
         onError={() => setErrored(true)}
+        priority={priority}
         unoptimized
       />
     );

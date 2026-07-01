@@ -8,8 +8,9 @@ import { PageHeader } from "@/shared/ui/page-header";
 export const revalidate = 300;
 
 export const metadata = createMetadata({
-  title: "Butiker",
-  description: "Utforska butiker och varumärken med aktuella erbjudanden.",
+  title: "Butiker med rabattkoder & erbjudanden",
+  description:
+    "Utforska svenska butiker och varumärken med aktuella rabatter, rabattkoder och kampanjer. Hitta bra erbjudanden från butikerna du gillar.",
   path: "/butiker",
 });
 
