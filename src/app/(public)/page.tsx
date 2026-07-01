@@ -44,11 +44,6 @@ const faqItems = [
       "braerbjudanden.se samlar bra erbjudanden, rabatter och rabattkoder från svenska butiker på ett ställe. Vi handplockar och rankar alla deals så att du snabbt hittar det som faktiskt är värt att klicka på.",
   },
   {
-    question: "Kostar det något att använda erbjudandena?",
-    answer:
-      "Nej, allt är gratis. Du klickar dig vidare till butiken och rabatten dras av där. Vi kan få provision från butiken när du handlar via våra länkar, men det påverkar aldrig priset för dig.",
-  },
-  {
     question: "Hur använder jag en rabattkod?",
     answer:
       "Klicka på koden för att kopiera den, gå vidare till butiken och klistra in koden i kassan innan du betalar. Rabatten dras av direkt på ditt köp.",
