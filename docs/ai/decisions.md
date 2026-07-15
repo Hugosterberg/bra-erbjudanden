@@ -33,6 +33,10 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - Importerade offers publiceras direkt (`status = published`), rankas efter rabattstorlek inom respektive nätverk, och arkiveras när de försvinner ur feeden.
 - Rabatt parsas heuristiskt från titel/beskrivning när nätverket inte anger numeriskt värde; fallback är 5 % för att uppfylla DB-constraint.
 - Manuellt skapade erbjudanden (`is_imported = false`) påverkas inte av importens rank-omräkning.
+- Import körs två gånger per dygn (02:00 och 14:00 svensk vintertid) via Vercel Cron. Admin kan trigga manuellt under `/admin/import`.
+- Arkivering sker bara när feeden svarar korrekt; tomma API-svar rensar inte befintlig katalog.
+- Manuella erbjudanden reserverar ranking 1–20; importerade rankas från 21 baserat på rabatt.
+- Samtidiga importkörningar blockeras via `affiliate_import_runs` i 45 minuter.
 
 ## Data Persistence
 

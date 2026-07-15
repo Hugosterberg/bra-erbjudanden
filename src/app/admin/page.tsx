@@ -1,8 +1,11 @@
-import { BarChart3, MailCheck, MousePointerClick, Store, Tags, TicketPercent } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, BarChart3, Download, MailCheck, MousePointerClick, Store, Tags, TicketPercent } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
+import { findLatestImportRun } from "@/features/affiliate-import/queries";
 import { findAdminCategories } from "@/features/categories/queries";
 import { findAdminOffers } from "@/features/offers/queries";
 import { findAdminStores } from "@/features/stores/queries";
@@ -17,12 +20,14 @@ export const metadata = createMetadata({
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const [offers, stores, categories, subscriberStats] = await Promise.all([
+  const [offers, stores, categories, subscriberStats, latestImport] = await Promise.all([
     findAdminOffers(),
     findAdminStores(),
     findAdminCategories(),
     findSubscriberStats(),
+    findLatestImportRun(),
   ]);
+  const importedOffers = offers.filter((offer) => offer.is_imported).length;
   const websiteClicks = offers.reduce(
     (sum, offer) => sum + (offer.website_click_count ?? 0),
     0,
@@ -34,6 +39,7 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     { label: "Erbjudanden", value: offers.length, icon: Tags },
+    { label: "Importerade", value: importedOffers, icon: Download },
     { label: "Butiker", value: stores.length, icon: Store },
     { label: "Kategorier", value: categories.length, icon: BarChart3 },
     { label: "Klick hemsida", value: websiteClicks, icon: MousePointerClick },
@@ -66,6 +72,31 @@ export default async function AdminDashboardPage() {
             );
           })}
         </div>
+        {latestImport ? (
+          <Card className="rounded-lg shadow-none">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">Senaste affiliate-import</p>
+                <p className="text-sm text-muted-foreground">
+                  {latestImport.status} ·{" "}
+                  {new Intl.DateTimeFormat("sv-SE", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(latestImport.started_at))}
+                  {latestImport.stats
+                    ? ` · ${latestImport.stats.totals.created} nya, ${latestImport.stats.totals.updated} uppdaterade`
+                    : ""}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/import">
+                  Visa import
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </AdminShell>
   );

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LayoutDashboard, LogOut, MailCheck, Store, Tags } from "lucide-react";
+import { Download, LayoutDashboard, LogOut, MailCheck, Store, Tags } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +9,7 @@ import { signOutAction } from "@/features/admin/auth";
 const adminNavigation = [
   { href: "/admin", label: "Översikt", icon: LayoutDashboard },
   { href: "/admin/erbjudanden", label: "Erbjudanden", icon: Tags },
+  { href: "/admin/import", label: "Import", icon: Download },
   { href: "/admin/prenumeranter", label: "Prenumeranter", icon: MailCheck },
   { href: "/admin/butiker", label: "Butiker", icon: Store },
   { href: "/admin/kategorier", label: "Kategorier", icon: Tags },

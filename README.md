@@ -27,6 +27,12 @@ Configure these variables in `.env.local`:
   - `AWIN_ACCESS_TOKEN` + `AWIN_PUBLISHER_ID` (+ optional `AWIN_REGION_CODE`, default `SE`)
   - `TRADEDOUBLER_VOUCHERS_TOKEN`
 
+Affiliate imports run on a schedule via Vercel Cron and can be triggered manually from `/admin/import`.
+
+```bash
+npm run test:import
+```
+
 ## Data persistence
 
 All persistent application data is stored in Supabase. Admin forms submit through

@@ -16,12 +16,24 @@ function isAuthorized(request: Request) {
   return authHeader === `Bearer ${cronSecret}`;
 }
 
-export async function GET(request: Request) {
+async function handleImport(request: Request) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   }
 
   const result = await runAffiliateImport();
 
+  if (result.skipped) {
+    return NextResponse.json(result, { status: 409 });
+  }
+
   return NextResponse.json(result, { status: result.ok ? 200 : 207 });
+}
+
+export async function GET(request: Request) {
+  return handleImport(request);
+}
+
+export async function POST(request: Request) {
+  return handleImport(request);
 }

@@ -14,6 +14,7 @@ import {
 import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
 import { StatusBadge } from "@/features/admin/components/status-badge";
+import { formatNetworkLabel } from "@/features/affiliate-import/network-labels";
 import { archiveOfferAction, publishOfferAction } from "@/features/offers/actions";
 import { formatDiscount, formatRedemptionType } from "@/features/offers/format";
 import { findAdminOffers } from "@/features/offers/queries";
@@ -55,6 +56,7 @@ export default async function AdminOffersPage() {
                   <TableHead>Butik</TableHead>
                   <TableHead>Typ</TableHead>
                   <TableHead>Rabatt</TableHead>
+                  <TableHead>Källa</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Ranking</TableHead>
                   <TableHead>Klick hemsida</TableHead>
@@ -69,6 +71,9 @@ export default async function AdminOffersPage() {
                     <TableCell>{offer.store?.name ?? "-"}</TableCell>
                     <TableCell>{formatRedemptionType(offer.redemption_type)}</TableCell>
                     <TableCell>{formatDiscount(offer.discount_type, offer.discount_value)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatNetworkLabel(offer.affiliate_network)}
+                    </TableCell>
                     <TableCell>
                       <StatusBadge status={offer.status} />
                     </TableCell>

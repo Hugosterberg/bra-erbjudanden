@@ -3,11 +3,22 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/shared/types/database";
 
-import { discountToRankPosition } from "./rank";
+import { MANUAL_RANK_RESERVE } from "./constants";
+import { compareImportedOffers } from "./rank";
 import { resolveImportedStore } from "./resolve-store";
-import type { AffiliateNetwork, ImportedOfferDraft } from "./types";
+import type { AffiliateNetwork, ImportedOfferDraft, ImportedStoreDraft } from "./types";
 
 type AdminClient = SupabaseClient<Database>;
+
+export type StoreCache = Map<string, string>;
+
+function storeCacheKey(network: AffiliateNetwork, externalId: string) {
+  return `${network}:${externalId}`;
+}
+
+export function createStoreCache() {
+  return new Map<string, string>();
+}
 
 async function findExistingOffer(
   supabase: AdminClient,
@@ -16,7 +27,7 @@ async function findExistingOffer(
 ) {
   const { data } = await supabase
     .from("offers")
-    .select("id, slug")
+    .select("id, slug, is_featured, category_id")
     .eq("affiliate_network", network)
     .eq("external_id", externalId)
     .maybeSingle();
@@ -61,15 +72,14 @@ function buildOfferRow(
   storeId: string,
   slug: string,
   now: string,
+  preserve?: { is_featured: boolean; category_id: string | null },
 ) {
-  const rankPosition = discountToRankPosition(draft.discountType, draft.discountValue);
-
   return {
     title: draft.title,
     slug,
     description: draft.description,
     store_id: storeId,
-    category_id: null,
+    category_id: preserve?.category_id ?? null,
     redemption_type: draft.redemptionType,
     discount_type: draft.discountType,
     discount_value: draft.discountValue,
@@ -80,8 +90,7 @@ function buildOfferRow(
     starts_at: draft.startsAt,
     ends_at: draft.endsAt,
     status: "published" as const,
-    rank_position: rankPosition,
-    is_featured: false,
+    is_featured: preserve?.is_featured ?? false,
     affiliate_network: draft.network,
     external_id: draft.externalId,
     is_imported: true,
@@ -90,22 +99,40 @@ function buildOfferRow(
   };
 }
 
+async function resolveStoreWithCache(
+  supabase: AdminClient,
+  network: AffiliateNetwork,
+  store: ImportedStoreDraft,
+  cache: StoreCache,
+) {
+  const key = storeCacheKey(network, store.externalId);
+  const cached = cache.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  const storeId = await resolveImportedStore(supabase, network, store);
+  cache.set(key, storeId);
+  return storeId;
+}
+
 export async function upsertImportedOffer(
   supabase: AdminClient,
   draft: ImportedOfferDraft,
+  cache: StoreCache = createStoreCache(),
 ): Promise<"created" | "updated" | "skipped"> {
   if (!draft.affiliateUrl || draft.discountValue <= 0) {
     return "skipped";
   }
 
-  const storeId = await resolveImportedStore(supabase, draft.network, draft.store);
+  const storeId = await resolveStoreWithCache(supabase, draft.network, draft.store, cache);
   const existing = await findExistingOffer(supabase, draft.network, draft.externalId);
   const now = new Date().toISOString();
   const baseSlug = createSlug(draft.title);
   const slug =
     existing?.slug ??
     (await findUniqueOfferSlug(supabase, baseSlug, draft.network, draft.externalId));
-  const row = buildOfferRow(draft, storeId, slug, now);
+  const row = buildOfferRow(draft, storeId, slug, now, existing ?? undefined);
 
   if (existing?.id) {
     const { error } = await supabase.from("offers").update(row).eq("id", existing.id);
@@ -120,6 +147,7 @@ export async function upsertImportedOffer(
     ...row,
     imported_at: now,
     created_at: now,
+    rank_position: MANUAL_RANK_RESERVE + 1,
   });
 
   if (error) {
@@ -133,7 +161,12 @@ export async function archiveMissingImportedOffers(
   supabase: AdminClient,
   network: AffiliateNetwork,
   activeExternalIds: string[],
+  options?: { allowArchive?: boolean },
 ) {
+  if (options?.allowArchive === false) {
+    return 0;
+  }
+
   const { data: existingOffers, error } = await supabase
     .from("offers")
     .select("id, external_id")
@@ -170,6 +203,26 @@ export async function archiveMissingImportedOffers(
   return toArchive.length;
 }
 
+async function batchUpdateRanks(
+  supabase: AdminClient,
+  updates: Array<{ id: string; rank_position: number }>,
+) {
+  const chunkSize = 50;
+  const now = new Date().toISOString();
+
+  for (let index = 0; index < updates.length; index += chunkSize) {
+    const chunk = updates.slice(index, index + chunkSize);
+    await Promise.all(
+      chunk.map((item) =>
+        supabase
+          .from("offers")
+          .update({ rank_position: item.rank_position, updated_at: now })
+          .eq("id", item.id),
+      ),
+    );
+  }
+}
+
 export async function recalculateImportedRanks(supabase: AdminClient, network: AffiliateNetwork) {
   const { data: offers, error } = await supabase
     .from("offers")
@@ -182,26 +235,11 @@ export async function recalculateImportedRanks(supabase: AdminClient, network: A
     throw new Error(error?.message ?? "Could not load offers for rank recalculation");
   }
 
-  const sorted = [...offers].sort((a, b) => {
-    const aIsPercentage = a.discount_type === "percentage";
-    const bIsPercentage = b.discount_type === "percentage";
+  const sorted = [...offers].sort(compareImportedOffers);
+  const updates = sorted.map((offer, index) => ({
+    id: offer.id,
+    rank_position: MANUAL_RANK_RESERVE + 1 + index,
+  }));
 
-    if (aIsPercentage !== bIsPercentage) {
-      return aIsPercentage ? -1 : 1;
-    }
-
-    return b.discount_value - a.discount_value;
-  });
-
-  await Promise.all(
-    sorted.map((offer, index) =>
-      supabase
-        .from("offers")
-        .update({
-          rank_position: index + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", offer.id),
-    ),
-  );
+  await batchUpdateRanks(supabase, updates);
 }

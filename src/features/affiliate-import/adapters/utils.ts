@@ -8,28 +8,71 @@ export class AffiliateApiError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function fetchJson<T>(
   url: string,
   init?: RequestInit,
+  options?: { timeoutMs?: number; retries?: number },
 ): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...init?.headers,
-    },
-    cache: "no-store",
-  });
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const retries = options?.retries ?? 1;
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new AffiliateApiError(
-      `Request failed (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`,
-      response.status,
-    );
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          ...init?.headers,
+        },
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        const error = new AffiliateApiError(
+          `Request failed (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`,
+          response.status,
+        );
+
+        if (attempt < retries && error.status && RETRYABLE_STATUSES.has(error.status)) {
+          lastError = error;
+          await sleep(1_000 * (attempt + 1));
+          continue;
+        }
+
+        throw error;
+      }
+
+      return (await response.json()) as T;
+    } catch (error) {
+      if (error instanceof AffiliateApiError) {
+        throw error;
+      }
+
+      lastError = error instanceof Error ? error : new Error("Network request failed");
+
+      if (attempt < retries) {
+        await sleep(1_000 * (attempt + 1));
+        continue;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
-  return response.json() as Promise<T>;
+  throw lastError ?? new Error("Network request failed");
 }
 
 export function readString(value: unknown) {

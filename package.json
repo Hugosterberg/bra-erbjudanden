@@ -9,7 +9,8 @@
     "lint": "eslint",
     "supabase": "node scripts/supabase-cli.mjs",
     "db:list": "node scripts/supabase-cli.mjs migration list",
-    "db:push": "node scripts/supabase-cli.mjs db push"
+    "db:push": "node scripts/supabase-cli.mjs db push",
+    "test:import": "node --test scripts/test-affiliate-import.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
