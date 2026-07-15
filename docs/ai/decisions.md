@@ -26,6 +26,14 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - Publika sidor returnerar tomma states när Supabase-miljövariabler saknas. Det är inte mockdata, utan ett tydligt lokalt läge tills riktiga Supabase-uppgifter konfigureras.
 - Admin skyddas server-side med ett lösenord i `ADMIN_PASSWORD` och en httpOnly-sessioncookie. Supabase service role används endast server-side för admin-CRUD efter lösenordsguard.
 
+## 2026-07-15
+
+- Affiliate auto-import körs via Vercel Cron (`/api/cron/import-offers`, 02:00 UTC) när nätverks-credentials finns i miljövariabler.
+- Importerade erbjudanden lagras med `affiliate_network` + `external_id` för idempotent upsert. Butiker skapas automatiskt per nätverk.
+- Importerade offers publiceras direkt (`status = published`), rankas efter rabattstorlek inom respektive nätverk, och arkiveras när de försvinner ur feeden.
+- Rabatt parsas heuristiskt från titel/beskrivning när nätverket inte anger numeriskt värde; fallback är 5 % för att uppfylla DB-constraint.
+- Manuellt skapade erbjudanden (`is_imported = false`) påverkas inte av importens rank-omräkning.
+
 ## Data Persistence
 
 - All persistent application data ska sparas i Supabase via server-side queries/actions.

@@ -19,6 +19,13 @@ Configure these variables in `.env.local`:
 - `SUPABASE_DB_PASSWORD` for Supabase CLI migration commands
 - `CLICK_HASH_SALT` for privacy-conscious IP hashing
 - `ADMIN_PASSWORD` for password-only admin login at `/admin`
+- `CRON_SECRET` for securing the nightly affiliate import cron job
+- Affiliate network credentials (enable only the networks you are approved on):
+  - `ADDREVENUE_API_TOKEN` + `ADDREVENUE_CHANNEL_ID`
+  - `ADTRACTION_API_TOKEN` + `ADTRACTION_CHANNEL_ID`
+  - `ADRECORD_API_KEY` + `ADRECORD_CHANNEL_ID`
+  - `AWIN_ACCESS_TOKEN` + `AWIN_PUBLISHER_ID` (+ optional `AWIN_REGION_CODE`, default `SE`)
+  - `TRADEDOUBLER_VOUCHERS_TOKEN`
 
 ## Data persistence
 

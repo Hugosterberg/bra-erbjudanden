@@ -18,6 +18,8 @@ export type Database = {
           website_url: string | null;
           logo_url: string | null;
           status: "active" | "inactive" | "archived";
+          affiliate_network: Database["public"]["Enums"]["affiliate_network"] | null;
+          external_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -29,6 +31,8 @@ export type Database = {
           website_url?: string | null;
           logo_url?: string | null;
           status?: "active" | "inactive" | "archived";
+          affiliate_network?: Database["public"]["Enums"]["affiliate_network"] | null;
+          external_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -77,6 +81,11 @@ export type Database = {
           status: "draft" | "published" | "archived";
           rank_position: number;
           is_featured: boolean;
+          affiliate_network: Database["public"]["Enums"]["affiliate_network"] | null;
+          external_id: string | null;
+          is_imported: boolean;
+          imported_at: string | null;
+          last_synced_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -99,6 +108,11 @@ export type Database = {
           status?: "draft" | "published" | "archived";
           rank_position?: number;
           is_featured?: boolean;
+          affiliate_network?: Database["public"]["Enums"]["affiliate_network"] | null;
+          external_id?: string | null;
+          is_imported?: boolean;
+          imported_at?: string | null;
+          last_synced_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -189,6 +203,28 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["deal_subscribers"]["Insert"]>;
         Relationships: [];
       };
+      affiliate_import_runs: {
+        Row: {
+          id: string;
+          started_at: string;
+          finished_at: string | null;
+          status: "running" | "completed" | "failed";
+          networks: string[];
+          stats: Json;
+          errors: Json;
+        };
+        Insert: {
+          id?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          status?: "running" | "completed" | "failed";
+          networks?: string[];
+          stats?: Json;
+          errors?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["affiliate_import_runs"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -208,6 +244,12 @@ export type Database = {
       entity_status: "active" | "inactive" | "archived";
       subscriber_status: "active" | "unsubscribed";
       click_type: "discount_code" | "website";
+      affiliate_network:
+        | "addrevenue"
+        | "adtraction"
+        | "adrecord"
+        | "awin"
+        | "tradedoubler";
     };
     CompositeTypes: Record<string, never>;
   };
