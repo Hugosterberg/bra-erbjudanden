@@ -175,7 +175,7 @@ export async function archiveMissingImportedOffers(
     .neq("status", "archived");
 
   if (error || !existingOffers) {
-    throw new Error(error?.message ?? "Could not load imported offers for archival");
+    throw new Error(error?.message ?? "Kunde inte läsa importerade erbjudanden för arkivering");
   }
 
   const activeSet = new Set(activeExternalIds);
@@ -232,7 +232,7 @@ export async function recalculateImportedRanks(supabase: AdminClient, network: A
     .eq("status", "published");
 
   if (error || !offers) {
-    throw new Error(error?.message ?? "Could not load offers for rank recalculation");
+    throw new Error(error?.message ?? "Kunde inte läsa erbjudanden för omrankning");
   }
 
   const sorted = [...offers].sort(compareImportedOffers);

@@ -9,7 +9,7 @@ import { signOutAction } from "@/features/admin/auth";
 const adminNavigation = [
   { href: "/admin", label: "Översikt", icon: LayoutDashboard },
   { href: "/admin/erbjudanden", label: "Erbjudanden", icon: Tags },
-  { href: "/admin/import", label: "Import", icon: Download },
+  { href: "/admin/import", label: "Affiliate-import", icon: Download },
   { href: "/admin/prenumeranter", label: "Prenumeranter", icon: MailCheck },
   { href: "/admin/butiker", label: "Butiker", icon: Store },
   { href: "/admin/kategorier", label: "Kategorier", icon: Tags },

@@ -1,9 +1,9 @@
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
-import type { AffiliateNetwork, ImportRunStats, NetworkImportResult } from "./types";
+import { getStaleBeforeIso } from "./import-status-utils";
+import type { AffiliateNetwork, ImportBatchStatus, ImportRunStats, NetworkImportResult } from "./types";
 
-export type ImportBatchStatus = "running" | "completed" | "completed_with_errors" | "failed";
-export type NetworkImportStatus = ImportBatchStatus;
+export type NetworkImportStatus = Exclude<ImportBatchStatus, "stale">;
 
 export function deriveNetworkImportStatus(result: NetworkImportResult): NetworkImportStatus {
   if (result.fetchFailed && result.created === 0 && result.updated === 0) {
@@ -19,7 +19,7 @@ export function deriveNetworkImportStatus(result: NetworkImportResult): NetworkI
 
 export function deriveBatchImportStatus(
   networkResults: NetworkImportResult[],
-): ImportBatchStatus {
+): Exclude<ImportBatchStatus, "stale"> {
   if (networkResults.length === 0) {
     return "failed";
   }
@@ -38,6 +38,36 @@ export function deriveBatchImportStatus(
   }
 
   return "completed";
+}
+
+export async function markStaleImportRunsFailed() {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return;
+  }
+
+  const staleBefore = getStaleBeforeIso();
+  const staleMessage = "Importen avbröts eller tog för lång tid utan att avslutas.";
+
+  await supabase
+    .from("affiliate_import_runs")
+    .update({
+      status: "failed",
+      finished_at: new Date().toISOString(),
+      errors: [staleMessage],
+    })
+    .eq("status", "running")
+    .lt("started_at", staleBefore);
+
+  await supabase
+    .from("affiliate_import_network_runs")
+    .update({
+      status: "failed",
+      finished_at: new Date().toISOString(),
+      errors: [staleMessage],
+    })
+    .eq("status", "running")
+    .lt("started_at", staleBefore);
 }
 
 export async function createImportBatch(networks: AffiliateNetwork[]) {
@@ -65,7 +95,7 @@ export async function createImportBatch(networks: AffiliateNetwork[]) {
 
 export async function finishImportBatch(
   batchId: string | null,
-  status: ImportBatchStatus,
+  status: Exclude<ImportBatchStatus, "stale">,
   stats: ImportRunStats,
   errors: string[],
 ) {

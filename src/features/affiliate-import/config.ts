@@ -1,8 +1,22 @@
-import type { AffiliateNetwork } from "./types";
+import { AFFILIATE_NETWORKS, type AffiliateNetwork } from "./types";
+import { getNetworkProfile } from "./network-profiles";
 
 function readEnv(name: string) {
   const value = process.env[name]?.trim();
   return value || null;
+}
+
+function parseNetworkList(raw: string | null): AffiliateNetwork[] {
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value): value is AffiliateNetwork =>
+      AFFILIATE_NETWORKS.includes(value as AffiliateNetwork),
+    );
 }
 
 export function getCronSecret() {
@@ -24,6 +38,45 @@ export function isNetworkConfigured(network: AffiliateNetwork) {
     default:
       return false;
   }
+}
+
+export function getCronSkippedNetworks() {
+  return parseNetworkList(readEnv("AFFILIATE_IMPORT_CRON_SKIP"));
+}
+
+export function isNetworkSkippedInCron(network: AffiliateNetwork) {
+  return getCronSkippedNetworks().includes(network);
+}
+
+export type NetworkImportProfile = {
+  network: AffiliateNetwork;
+  label: string;
+  description: string;
+  market: string;
+  credentials: string[];
+  configured: boolean;
+  cronEnabled: boolean;
+  publishedCount: number;
+};
+
+export function buildNetworkImportProfiles(publishedCounts: Record<string, number>) {
+  const skipped = getCronSkippedNetworks();
+
+  return AFFILIATE_NETWORKS.map((network) => {
+    const profile = getNetworkProfile(network);
+    const configured = isNetworkConfigured(network);
+
+    return {
+      network,
+      label: profile.label,
+      description: profile.description,
+      market: profile.market,
+      credentials: profile.credentials,
+      configured,
+      cronEnabled: configured && !skipped.includes(network),
+      publishedCount: publishedCounts[network] ?? 0,
+    };
+  });
 }
 
 export function getAddrevenueConfig() {

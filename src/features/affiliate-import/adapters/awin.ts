@@ -89,36 +89,47 @@ export const awinAdapter: AffiliateAdapter = {
       return [];
     }
 
-    const response = await fetchJson<AwinPromotionResponse>(
-      `${BASE_URL}/publisher/${config.publisherId}/promotions`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.accessToken}`,
-          "Content-Type": "application/json",
+    const pageSize = 500;
+    const allOffers: ImportedOfferDraft[] = [];
+
+    for (let page = 1; page <= 20; page += 1) {
+      const response = await fetchJson<AwinPromotionResponse>(
+        `${BASE_URL}/publisher/${config.publisherId}/promotions`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            filters: {
+              regionCodes: [config.regionCode],
+              status: "active",
+              type: "all",
+            },
+            pagination: {
+              page,
+              pageSize,
+            },
+          }),
         },
-        body: JSON.stringify({
-          filters: {
-            regionCodes: [config.regionCode],
-            status: "active",
-            type: "all",
-          },
-          pagination: {
-            page: 1,
-            pageSize: 500,
-          },
-        }),
-      },
-    );
+      );
 
-    const items = readArray(response.data ?? response.promotions ?? response);
-    const offers = items
-      .map((item) => {
-        const record = readRecord(item);
-        return record ? mapPromotion(record) : null;
-      })
-      .filter((offer): offer is ImportedOfferDraft => offer !== null);
+      const items = readArray(response.data ?? response.promotions ?? response);
+      const offers = items
+        .map((item) => {
+          const record = readRecord(item);
+          return record ? mapPromotion(record) : null;
+        })
+        .filter((offer): offer is ImportedOfferDraft => offer !== null);
 
-    return dedupeByExternalId(offers);
+      allOffers.push(...offers);
+
+      if (items.length < pageSize) {
+        break;
+      }
+    }
+
+    return dedupeByExternalId(allOffers);
   },
 };

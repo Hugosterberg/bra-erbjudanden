@@ -1,14 +1,15 @@
-import type { ImportBatchStatus } from "./queries";
+import type { ImportBatchStatus } from "./types";
 
 const STATUS_LABELS: Record<ImportBatchStatus, string> = {
   running: "Körs",
   completed: "Klar",
   completed_with_errors: "Klar med fel",
   failed: "Misslyckades",
+  stale: "Avbruten",
 };
 
 export function formatImportStatus(status: ImportBatchStatus | string) {
-  return STATUS_LABELS[status as ImportBatchStatus] ?? status;
+  return STATUS_LABELS[status as ImportBatchStatus] ?? "Okänd status";
 }
 
 export function importStatusVariant(
@@ -20,7 +21,10 @@ export function importStatusVariant(
     case "completed_with_errors":
       return "outline";
     case "failed":
+    case "stale":
       return "destructive";
+    case "running":
+      return "secondary";
     default:
       return "secondary";
   }

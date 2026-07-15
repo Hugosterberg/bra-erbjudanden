@@ -3,16 +3,18 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { getConfiguredAdapters } from "./adapters";
+import { getCronSkippedNetworks } from "./config";
 import { MIN_FEED_SIZE_FOR_ARCHIVE, NETWORK_SYNC_DELAY_MS } from "./constants";
 import {
   createImportBatch,
   deriveBatchImportStatus,
   finishImportBatch,
   finishNetworkImportRun,
+  markStaleImportRunsFailed,
   startNetworkImportRun,
 } from "./import-run-log";
 import { findActiveImportRun } from "./queries";
-import type { AffiliateAdapter, ImportRunStats, NetworkImportResult } from "./types";
+import type { AffiliateAdapter, AffiliateNetwork, ImportRunStats, NetworkImportResult } from "./types";
 import {
   archiveMissingImportedOffers,
   createStoreCache,
@@ -37,7 +39,7 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
   };
 
   if (!supabase) {
-    result.errors.push("Supabase admin client is not configured.");
+    result.errors.push("Supabase admin-klienten är inte konfigurerad.");
     return result;
   }
 
@@ -51,7 +53,7 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
     fetchFailed = true;
     result.fetchFailed = true;
     result.errors.push(
-      error instanceof Error ? error.message : "Could not fetch offers from network",
+      error instanceof Error ? error.message : "Kunde inte hämta erbjudanden från nätverket",
     );
     return result;
   }
@@ -70,7 +72,7 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
       }
     } catch (error) {
       result.errors.push(
-        error instanceof Error ? error.message : `Unknown error for offer ${offer.externalId}`,
+        error instanceof Error ? error.message : `Okänt fel för erbjudande ${offer.externalId}`,
       );
     }
   }
@@ -88,7 +90,7 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
     );
     await recalculateImportedRanks(supabase, adapter.network);
   } catch (error) {
-    result.errors.push(error instanceof Error ? error.message : "Post-sync cleanup failed");
+    result.errors.push(error instanceof Error ? error.message : "Eftersyn misslyckades");
   }
 
   return result;
@@ -126,6 +128,7 @@ function revalidatePublicPages() {
 
 export type ImportRunResult = {
   ok: boolean;
+  warning?: boolean;
   message: string;
   stats: ImportRunStats;
   errors: string[];
@@ -133,7 +136,18 @@ export type ImportRunResult = {
   batchId?: string | null;
 };
 
-export async function runAffiliateImport(): Promise<ImportRunResult> {
+export type RunAffiliateImportOptions = {
+  networks?: AffiliateNetwork[];
+  /** Cron skips networks listed in AFFILIATE_IMPORT_CRON_SKIP. Manual runs do not. */
+  source?: "cron" | "manual";
+};
+
+export async function runAffiliateImport(
+  options: RunAffiliateImportOptions = {},
+): Promise<ImportRunResult> {
+  const source = options.source ?? "manual";
+  await markStaleImportRunsFailed();
+
   const activeRun = await findActiveImportRun();
   if (activeRun) {
     return {
@@ -145,18 +159,35 @@ export async function runAffiliateImport(): Promise<ImportRunResult> {
     };
   }
 
-  const adapters = getConfiguredAdapters();
+  let adapters = getConfiguredAdapters(options.networks);
+
+  if (source === "cron") {
+    const cronSkipped = getCronSkippedNetworks();
+    adapters = adapters.filter((adapter) => !cronSkipped.includes(adapter.network));
+  }
 
   if (adapters.length === 0) {
     return {
       ok: false,
-      message: "Inga affiliatenätverk är konfigurerade. Lägg till API-uppgifter i miljövariabler.",
+      message:
+        source === "cron"
+          ? "Inga nätverk aktiverade för schemalagd import."
+          : "Inga affiliatenätverk är konfigurerade. Lägg till API-uppgifter i miljövariabler.",
       stats: summarizeStats([]),
       errors: [],
     };
   }
 
   const batchId = await createImportBatch(adapters.map((adapter) => adapter.network));
+  if (!batchId) {
+    return {
+      ok: false,
+      message: "Kunde inte starta importkörningen. Kontrollera databasanslutningen.",
+      stats: summarizeStats([]),
+      errors: ["Importloggen kunde inte skapas i databasen."],
+    };
+  }
+
   const networkResults: NetworkImportResult[] = [];
 
   for (const [index, adapter] of adapters.entries()) {
@@ -164,9 +195,7 @@ export async function runAffiliateImport(): Promise<ImportRunResult> {
       await sleep(NETWORK_SYNC_DELAY_MS);
     }
 
-    const networkRunId = batchId
-      ? await startNetworkImportRun(batchId, adapter.network)
-      : null;
+    const networkRunId = await startNetworkImportRun(batchId, adapter.network);
 
     const result = await syncNetwork(adapter);
     networkResults.push(result);
@@ -186,19 +215,22 @@ export async function runAffiliateImport(): Promise<ImportRunResult> {
     revalidatePublicPages();
   }
 
-  const failedNetworks = networkResults.filter(
-    (result) => result.errors.length > 0 && result.fetched === 0,
-  );
+  const networkLabel =
+    adapters.length === 1 ? adapters[0].network : `${adapters.length} nätverk`;
+
+  const ok = batchStatus === "completed";
+  const warning = batchStatus === "completed_with_errors";
 
   return {
-    ok: batchStatus !== "failed",
+    ok,
+    warning,
     batchId,
     message:
       batchStatus === "failed"
-        ? "Importen misslyckades för alla nätverk."
+        ? `Importen misslyckades för ${networkLabel}.`
         : batchStatus === "completed_with_errors"
-          ? `Import klar med fel i ${failedNetworks.length || "vissa"} nätverk. ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`
-          : `Import klar. ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`,
+          ? `Import klar med fel (${networkLabel}). ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`
+          : `Import klar (${networkLabel}). ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`,
     stats,
     errors,
   };

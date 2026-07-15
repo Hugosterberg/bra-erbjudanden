@@ -43,6 +43,13 @@ export type NetworkImportResult = {
   fetchFailed?: boolean;
 };
 
+export type ImportBatchStatus =
+  | "running"
+  | "completed"
+  | "completed_with_errors"
+  | "failed"
+  | "stale";
+
 export type ImportRunStats = {
   totals: {
     fetched: number;

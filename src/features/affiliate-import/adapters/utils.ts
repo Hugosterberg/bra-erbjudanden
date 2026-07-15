@@ -42,7 +42,7 @@ export async function fetchJson<T>(
       if (!response.ok) {
         const body = await response.text().catch(() => "");
         const error = new AffiliateApiError(
-          `Request failed (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`,
+          `API-anrop misslyckades (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`,
           response.status,
         );
 
@@ -61,7 +61,7 @@ export async function fetchJson<T>(
         throw error;
       }
 
-      lastError = error instanceof Error ? error : new Error("Network request failed");
+      lastError = error instanceof Error ? error : new Error("Nätverksanrop misslyckades");
 
       if (attempt < retries) {
         await sleep(1_000 * (attempt + 1));
@@ -72,7 +72,7 @@ export async function fetchJson<T>(
     }
   }
 
-  throw lastError ?? new Error("Network request failed");
+  throw lastError ?? new Error("Nätverksanrop misslyckades");
 }
 
 export function readString(value: unknown) {

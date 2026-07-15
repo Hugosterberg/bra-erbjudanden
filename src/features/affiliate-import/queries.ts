@@ -1,14 +1,10 @@
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
-import { IMPORT_RUN_STALE_MINUTES } from "./constants";
-import type { AffiliateNetwork } from "./types";
-import { AFFILIATE_NETWORKS, type ImportRunStats } from "./types";
+import { getStaleBeforeIso, normalizeDisplayImportStatus } from "./import-status-utils";
+import type { AffiliateNetwork, ImportBatchStatus, ImportRunStats } from "./types";
+import { AFFILIATE_NETWORKS } from "./types";
 
-export type ImportBatchStatus =
-  | "running"
-  | "completed"
-  | "completed_with_errors"
-  | "failed";
+export type { ImportBatchStatus } from "./types";
 
 export type ImportRunRow = {
   id: string;
@@ -49,11 +45,13 @@ function mapImportRun(row: {
   stats: unknown;
   errors: unknown;
 }): ImportRunRow {
+  const status = normalizeDisplayImportStatus(row.status, row.started_at, row.finished_at);
+
   return {
     id: row.id,
     started_at: row.started_at,
     finished_at: row.finished_at,
-    status: row.status as ImportBatchStatus,
+    status,
     networks: row.networks ?? [],
     stats: (row.stats as ImportRunStats | null) ?? null,
     errors: Array.isArray(row.errors) ? (row.errors as string[]) : [],
@@ -74,13 +72,15 @@ function mapNetworkImportRun(row: {
   skipped_count: number;
   errors: unknown;
 }): NetworkImportRunRow {
+  const status = normalizeDisplayImportStatus(row.status, row.started_at, row.finished_at);
+
   return {
     id: row.id,
     batch_id: row.batch_id,
     affiliate_network: row.affiliate_network,
     started_at: row.started_at,
     finished_at: row.finished_at,
-    status: row.status as ImportBatchStatus,
+    status,
     fetched: row.fetched,
     created_count: row.created_count,
     updated_count: row.updated_count,
@@ -172,7 +172,11 @@ export async function findRecentNetworkImportRuns(limit = 20) {
     return {
       ...mapped,
       batch_started_at: batch?.started_at ?? mapped.started_at,
-      batch_status: (batch?.status ?? mapped.status) as ImportBatchStatus,
+      batch_status: normalizeDisplayImportStatus(
+        batch?.status ?? mapped.status,
+        batch?.started_at ?? mapped.started_at,
+        null,
+      ),
     };
   });
 }
@@ -183,30 +187,45 @@ export async function findLatestNetworkImportByNetwork() {
     return {} as Partial<Record<AffiliateNetwork, NetworkImportRunRow>>;
   }
 
+  const { data } = await supabase
+    .from("affiliate_import_network_runs")
+    .select(
+      "id, batch_id, affiliate_network, started_at, finished_at, status, fetched, created_count, updated_count, archived_count, skipped_count, errors",
+    )
+    .in("affiliate_network", AFFILIATE_NETWORKS)
+    .order("started_at", { ascending: false })
+    .limit(AFFILIATE_NETWORKS.length * 3);
+
   const results: Partial<Record<AffiliateNetwork, NetworkImportRunRow>> = {};
 
-  await Promise.all(
-    AFFILIATE_NETWORKS.map(async (network) => {
-      const { data } = await supabase
-        .from("affiliate_import_network_runs")
-        .select(
-          "id, batch_id, affiliate_network, started_at, finished_at, status, fetched, created_count, updated_count, archived_count, skipped_count, errors",
-        )
-        .eq("affiliate_network", network)
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (data) {
-        results[network] = mapNetworkImportRun({
-          ...data,
-          affiliate_network: data.affiliate_network as AffiliateNetwork,
-        });
-      }
-    }),
-  );
+  for (const row of data ?? []) {
+    const network = row.affiliate_network as AffiliateNetwork;
+    if (!results[network]) {
+      results[network] = mapNetworkImportRun({
+        ...row,
+        affiliate_network: network,
+      });
+    }
+  }
 
   return results;
+}
+
+export async function findRunningNetworkImports() {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return [] as AffiliateNetwork[];
+  }
+
+  const staleBefore = getStaleBeforeIso();
+
+  const { data } = await supabase
+    .from("affiliate_import_network_runs")
+    .select("affiliate_network")
+    .eq("status", "running")
+    .gte("started_at", staleBefore);
+
+  return (data ?? []).map((row) => row.affiliate_network as AffiliateNetwork);
 }
 
 export async function findActiveImportRun() {
@@ -215,7 +234,7 @@ export async function findActiveImportRun() {
     return null;
   }
 
-  const staleBefore = new Date(Date.now() - IMPORT_RUN_STALE_MINUTES * 60_000).toISOString();
+  const staleBefore = getStaleBeforeIso();
 
   const { data: activeBatch } = await supabase
     .from("affiliate_import_runs")
@@ -262,15 +281,17 @@ export async function countImportedOffersByNetwork() {
     AFFILIATE_NETWORKS.map((network) => [network, 0]),
   );
 
-  for (const network of AFFILIATE_NETWORKS) {
-    const { count } = await supabase
-      .from("offers")
-      .select("id", { count: "exact", head: true })
-      .eq("affiliate_network", network)
-      .eq("is_imported", true)
-      .eq("status", "published");
+  const { data } = await supabase
+    .from("offers")
+    .select("affiliate_network")
+    .eq("is_imported", true)
+    .eq("status", "published")
+    .in("affiliate_network", [...AFFILIATE_NETWORKS]);
 
-    counts[network] = count ?? 0;
+  for (const row of data ?? []) {
+    if (row.affiliate_network) {
+      counts[row.affiliate_network] = (counts[row.affiliate_network] ?? 0) + 1;
+    }
   }
 
   return counts;

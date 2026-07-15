@@ -21,7 +21,7 @@ async function handleImport(request: Request) {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await runAffiliateImport();
+  const result = await runAffiliateImport({ source: "cron" });
 
   if (result.skipped) {
     return NextResponse.json(result, { status: 409 });

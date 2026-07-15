@@ -14,4 +14,4 @@ export const NETWORK_SYNC_DELAY_MS = 2_000;
 export const IMPORT_CRON_SCHEDULE = "0 1,13 * * *";
 
 export const IMPORT_SCHEDULE_LABEL =
-  "Två gånger per dygn: 02:00 och 14:00 svensk tid (vintertid).";
+  "Schemalagd import två gånger per dygn: 02:00 och 14:00 svensk tid (vintertid, +1 timme sommartid).";

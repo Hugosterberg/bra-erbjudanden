@@ -1,5 +1,6 @@
 import { findActiveCategoryBySlug } from "@/features/categories/queries";
 import { findActiveStoreBySlug } from "@/features/stores/queries";
+import type { AffiliateNetwork } from "@/features/affiliate-import/types";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
 
@@ -111,18 +112,38 @@ export async function findOfferRedirectTarget(id: string): Promise<OfferRedirect
   return data;
 }
 
-export async function findAdminOffers() {
+export async function findAdminOffers(options: {
+  network?: AffiliateNetwork;
+  status?: "published" | "draft" | "archived";
+  imported?: boolean;
+} = {}) {
   const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
     return [];
   }
 
-  const { data: offers } = await supabase
+  let query = supabase
     .from("offers")
     .select(offerRelationsSelect)
     .order("rank_position", { ascending: true })
     .order("updated_at", { ascending: false });
+
+  if (options.network) {
+    query = query.eq("affiliate_network", options.network);
+  }
+
+  if (options.status) {
+    query = query.eq("status", options.status);
+  }
+
+  if (options.imported === true) {
+    query = query.eq("is_imported", true);
+  } else if (options.imported === false) {
+    query = query.eq("is_imported", false);
+  }
+
+  const { data: offers } = await query;
 
   const { data: clickEvents } = await supabase
     .from("click_events")
