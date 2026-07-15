@@ -4,6 +4,13 @@ import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { getConfiguredAdapters } from "./adapters";
 import { MIN_FEED_SIZE_FOR_ARCHIVE, NETWORK_SYNC_DELAY_MS } from "./constants";
+import {
+  createImportBatch,
+  deriveBatchImportStatus,
+  finishImportBatch,
+  finishNetworkImportRun,
+  startNetworkImportRun,
+} from "./import-run-log";
 import { findActiveImportRun } from "./queries";
 import type { AffiliateAdapter, ImportRunStats, NetworkImportResult } from "./types";
 import {
@@ -42,7 +49,10 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
     result.fetched = offers.length;
   } catch (error) {
     fetchFailed = true;
-    result.errors.push(error instanceof Error ? error.message : "Could not fetch offers from network");
+    result.fetchFailed = true;
+    result.errors.push(
+      error instanceof Error ? error.message : "Could not fetch offers from network",
+    );
     return result;
   }
 
@@ -104,55 +114,6 @@ function summarizeStats(networkResults: NetworkImportResult[]): ImportRunStats {
   return { totals, networks: networkResults };
 }
 
-async function createImportRun(networks: string[]) {
-  const supabase = getSupabaseAdminClient();
-  if (!supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from("affiliate_import_runs")
-    .insert({
-      status: "running",
-      networks,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("Could not create affiliate import run:", error.message);
-    return null;
-  }
-
-  return data.id;
-}
-
-async function finishImportRun(
-  runId: string | null,
-  status: "completed" | "failed",
-  stats: ImportRunStats,
-  errors: string[],
-) {
-  if (!runId) {
-    return;
-  }
-
-  const supabase = getSupabaseAdminClient();
-  if (!supabase) {
-    return;
-  }
-
-  await supabase
-    .from("affiliate_import_runs")
-    .update({
-      status,
-      finished_at: new Date().toISOString(),
-      stats,
-      errors,
-    })
-    .eq("id", runId);
-}
-
 function revalidatePublicPages() {
   revalidatePath("/");
   revalidatePath("/kampanjer");
@@ -169,6 +130,7 @@ export type ImportRunResult = {
   stats: ImportRunStats;
   errors: string[];
   skipped?: boolean;
+  batchId?: string | null;
 };
 
 export async function runAffiliateImport(): Promise<ImportRunResult> {
@@ -194,7 +156,7 @@ export async function runAffiliateImport(): Promise<ImportRunResult> {
     };
   }
 
-  const runId = await createImportRun(adapters.map((adapter) => adapter.network));
+  const batchId = await createImportBatch(adapters.map((adapter) => adapter.network));
   const networkResults: NetworkImportResult[] = [];
 
   for (const [index, adapter] of adapters.entries()) {
@@ -202,30 +164,41 @@ export async function runAffiliateImport(): Promise<ImportRunResult> {
       await sleep(NETWORK_SYNC_DELAY_MS);
     }
 
-    networkResults.push(await syncNetwork(adapter));
+    const networkRunId = batchId
+      ? await startNetworkImportRun(batchId, adapter.network)
+      : null;
+
+    const result = await syncNetwork(adapter);
+    networkResults.push(result);
+
+    await finishNetworkImportRun(networkRunId, result);
   }
 
   const stats = summarizeStats(networkResults);
   const errors = networkResults.flatMap((result) =>
     result.errors.map((message) => `${result.network}: ${message}`),
   );
+  const batchStatus = deriveBatchImportStatus(networkResults);
 
-  const networksWithData = networkResults.filter((result) => result.fetched > 0).length;
-  const allNetworksFailed = networksWithData === 0 && errors.length > 0;
-
-  await finishImportRun(runId, allNetworksFailed ? "failed" : "completed", stats, errors);
+  await finishImportBatch(batchId, batchStatus, stats, errors);
 
   if (stats.totals.created + stats.totals.updated + stats.totals.archived > 0) {
     revalidatePublicPages();
   }
 
+  const failedNetworks = networkResults.filter(
+    (result) => result.errors.length > 0 && result.fetched === 0,
+  );
+
   return {
-    ok: !allNetworksFailed,
-    message: allNetworksFailed
-      ? "Importen misslyckades för alla nätverk."
-      : errors.length > 0
-        ? `Import klar med varningar. ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`
-        : `Import klar. ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`,
+    ok: batchStatus !== "failed",
+    batchId,
+    message:
+      batchStatus === "failed"
+        ? "Importen misslyckades för alla nätverk."
+        : batchStatus === "completed_with_errors"
+          ? `Import klar med fel i ${failedNetworks.length || "vissa"} nätverk. ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`
+          : `Import klar. ${stats.totals.created} nya, ${stats.totals.updated} uppdaterade.`,
     stats,
     errors,
   };

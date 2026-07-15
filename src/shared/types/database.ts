@@ -208,7 +208,7 @@ export type Database = {
           id: string;
           started_at: string;
           finished_at: string | null;
-          status: "running" | "completed" | "failed";
+          status: "running" | "completed" | "completed_with_errors" | "failed";
           networks: string[];
           stats: Json;
           errors: Json;
@@ -217,13 +217,53 @@ export type Database = {
           id?: string;
           started_at?: string;
           finished_at?: string | null;
-          status?: "running" | "completed" | "failed";
+          status?: "running" | "completed" | "completed_with_errors" | "failed";
           networks?: string[];
           stats?: Json;
           errors?: Json;
         };
         Update: Partial<Database["public"]["Tables"]["affiliate_import_runs"]["Insert"]>;
         Relationships: [];
+      };
+      affiliate_import_network_runs: {
+        Row: {
+          id: string;
+          batch_id: string;
+          affiliate_network: Database["public"]["Enums"]["affiliate_network"];
+          started_at: string;
+          finished_at: string | null;
+          status: "running" | "completed" | "completed_with_errors" | "failed";
+          fetched: number;
+          created_count: number;
+          updated_count: number;
+          archived_count: number;
+          skipped_count: number;
+          errors: Json;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          affiliate_network: Database["public"]["Enums"]["affiliate_network"];
+          started_at?: string;
+          finished_at?: string | null;
+          status?: "running" | "completed" | "completed_with_errors" | "failed";
+          fetched?: number;
+          created_count?: number;
+          updated_count?: number;
+          archived_count?: number;
+          skipped_count?: number;
+          errors?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["affiliate_import_network_runs"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_import_network_runs_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "affiliate_import_runs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;

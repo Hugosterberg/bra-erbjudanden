@@ -37,6 +37,7 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - Arkivering sker bara när feeden svarar korrekt; tomma API-svar rensar inte befintlig katalog.
 - Manuella erbjudanden reserverar ranking 1–20; importerade rankas från 21 baserat på rabatt.
 - Samtidiga importkörningar blockeras via `affiliate_import_runs` i 45 minuter.
+- Varje nätverk loggas separat i `affiliate_import_network_runs` med egen status (`completed`, `completed_with_errors`, `failed`) per körning.
 
 ## Data Persistence
 

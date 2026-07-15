@@ -40,6 +40,7 @@ export type NetworkImportResult = {
   archived: number;
   skipped: number;
   errors: string[];
+  fetchFailed?: boolean;
 };
 
 export type ImportRunStats = {

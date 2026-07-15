@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
 import { findLatestImportRun } from "@/features/affiliate-import/queries";
+import { ImportStatusBadge } from "@/features/affiliate-import/components/import-status-badge";
 import { findAdminCategories } from "@/features/categories/queries";
 import { findAdminOffers } from "@/features/offers/queries";
 import { findAdminStores } from "@/features/stores/queries";
@@ -75,10 +76,10 @@ export default async function AdminDashboardPage() {
         {latestImport ? (
           <Card className="rounded-lg shadow-none">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm font-medium">Senaste affiliate-import</p>
+                <ImportStatusBadge status={latestImport.status} />
                 <p className="text-sm text-muted-foreground">
-                  {latestImport.status} ·{" "}
                   {new Intl.DateTimeFormat("sv-SE", {
                     dateStyle: "medium",
                     timeStyle: "short",

@@ -8,12 +8,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import type { ImportRunRow } from "../queries";
+import type { NetworkImportRunWithBatch } from "../queries";
 import { formatNetworkLabel } from "../network-labels";
 import { ImportStatusBadge } from "./import-status-badge";
 
-type ImportRunHistoryProps = {
-  runs: ImportRunRow[];
+type NetworkImportRunHistoryProps = {
+  runs: NetworkImportRunWithBatch[];
 };
 
 function formatDate(value: string | null) {
@@ -43,48 +43,54 @@ function formatDuration(startedAt: string, finishedAt: string | null) {
   return `${Math.round(seconds / 60)} min`;
 }
 
-export function ImportRunHistory({ runs }: ImportRunHistoryProps) {
+export function NetworkImportRunHistory({ runs }: NetworkImportRunHistoryProps) {
   return (
     <Card className="rounded-lg shadow-none">
       <CardHeader>
-        <CardTitle className="text-base">Schemalagda körningar (batch)</CardTitle>
+        <CardTitle className="text-base">Import per nätverk</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Varje cron-körning som triggar alla konfigurerade nätverk i följd.
+          Varje rad är en separat import från ett affiliatenätverk — enkelt att se exakt var det
+          gick fel.
         </p>
       </CardHeader>
       <CardContent className="p-0">
         {runs.length === 0 ? (
           <p className="px-6 pb-6 text-sm text-muted-foreground">
-            Inga batch-körningar har loggats ännu.
+            Inga nätverksimporter har körts ännu.
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Nätverk</TableHead>
                 <TableHead>Start</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Nätverk</TableHead>
+                <TableHead>Hämtade</TableHead>
                 <TableHead>Nya</TableHead>
                 <TableHead>Uppdaterade</TableHead>
                 <TableHead>Arkiverade</TableHead>
                 <TableHead>Varaktighet</TableHead>
+                <TableHead>Fel</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {runs.map((run) => (
                 <TableRow key={run.id}>
+                  <TableCell className="font-medium">
+                    {formatNetworkLabel(run.affiliate_network)}
+                  </TableCell>
                   <TableCell>{formatDate(run.started_at)}</TableCell>
                   <TableCell>
                     <ImportStatusBadge status={run.status} />
                   </TableCell>
-                  <TableCell>
-                    {run.networks.map((network) => formatNetworkLabel(network)).join(", ") ||
-                      "–"}
-                  </TableCell>
-                  <TableCell data-numeric>{run.stats?.totals.created ?? 0}</TableCell>
-                  <TableCell data-numeric>{run.stats?.totals.updated ?? 0}</TableCell>
-                  <TableCell data-numeric>{run.stats?.totals.archived ?? 0}</TableCell>
+                  <TableCell data-numeric>{run.fetched}</TableCell>
+                  <TableCell data-numeric>{run.created_count}</TableCell>
+                  <TableCell data-numeric>{run.updated_count}</TableCell>
+                  <TableCell data-numeric>{run.archived_count}</TableCell>
                   <TableCell>{formatDuration(run.started_at, run.finished_at)}</TableCell>
+                  <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                    {run.errors.length > 0 ? run.errors[0] : "–"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
