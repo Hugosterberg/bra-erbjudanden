@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Download, LayoutDashboard, LogOut, MailCheck, Store, Tags } from "lucide-react";
+import { Download, LayoutDashboard, LogOut, MailCheck, Store, Tags, TrendingUp, Megaphone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -10,6 +10,8 @@ const adminNavigation = [
   { href: "/admin", label: "Översikt", icon: LayoutDashboard },
   { href: "/admin/erbjudanden", label: "Erbjudanden", icon: Tags },
   { href: "/admin/import", label: "Affiliate-import", icon: Download },
+  { href: "/admin/intakter", label: "Intäkter", icon: TrendingUp },
+  { href: "/admin/annonser", label: "Annonser", icon: Megaphone },
   { href: "/admin/prenumeranter", label: "Prenumeranter", icon: MailCheck },
   { href: "/admin/butiker", label: "Butiker", icon: Store },
   { href: "/admin/kategorier", label: "Kategorier", icon: Tags },

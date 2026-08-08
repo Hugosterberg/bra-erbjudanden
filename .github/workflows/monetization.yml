@@ -1,0 +1,82 @@
+name: Monetization System Tests
+
+on:
+  push:
+    branches: [main, feature/affiliate-import]
+    paths:
+      - 'src/features/monetization/**'
+      - 'src/features/ad-network/**'
+      - 'supabase/migrations/*monetization*'
+      - 'supabase/migrations/*ad*'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/features/monetization/**'
+      - 'src/features/ad-network/**'
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    name: TypeScript Type Check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx tsc --noEmit src/features/monetization src/features/ad-network
+
+  lint:
+    runs-on: ubuntu-latest
+    name: Linting
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint -- src/features/monetization src/features/ad-network
+
+  test:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test -- --testPathPattern='(monetization|ad-network)' --coverage
+      - uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: monetization
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security Audit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build Check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
