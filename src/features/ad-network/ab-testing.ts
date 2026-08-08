@@ -153,9 +153,8 @@ export async function concludeTest(testId: string, applyWinner: boolean = true):
 
     // If applying winner, update campaign to use winning creative
     if (applyWinner && performance.winner !== "inconclusive") {
-      const winnerId = performance.winner === "variant" ? test.variant_creative_id : test.control_creative_id;
-
-      // In production, update campaign to primarily use this creative
+      // In production, would update campaign to primarily use winning creative
+      // const winnerId = performance.winner === "variant" ? test.variant_creative_id : test.control_creative_id;
       // await updateCampaignPrimaryCreative(test.campaign_id, winnerId);
     }
 

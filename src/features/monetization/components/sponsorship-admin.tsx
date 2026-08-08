@@ -13,8 +13,6 @@ interface SponsorshipAdminProps {
 }
 
 export function SponsorshipAdmin({ sponsorships, onRefresh }: SponsorshipAdminProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
   const activeSponsorships = sponsorships.filter((s) => s.status === "active");
   const completedSponsorships = sponsorships.filter((s) => s.status === "completed");
 

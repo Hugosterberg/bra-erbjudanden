@@ -1,7 +1,6 @@
 "use server";
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import type { AdCampaign } from "./types";
 
 export interface AuctionContext {
   placementId: string;
@@ -74,11 +73,11 @@ export async function runRTBAuction(context: AuctionContext): Promise<AuctionRes
 
       // Calculate bid multiplier based on targeting
       let bidMultiplier = 1.0;
-      const multipliers: any = {};
+      const multipliers: Record<string, number> = {};
 
       if (rules) {
         for (const rule of rules) {
-          const condition = rule.rule_condition as any;
+          const condition = rule.rule_condition as Record<string, unknown>;
 
           // Check geo targeting
           if (rule.rule_type === "geo" && context.userGeo) {
@@ -256,7 +255,7 @@ export async function updateDemandIndex(placementId: string): Promise<void> {
 
 // === Helper Functions ===
 
-function matchesGeoCondition(userGeo: string, condition: any): boolean {
+function matchesGeoCondition(userGeo: string, condition: Record<string, unknown>): boolean {
   if (condition.country && condition.country !== userGeo.split(",")[0]) {
     return false;
   }
@@ -266,27 +265,31 @@ function matchesGeoCondition(userGeo: string, condition: any): boolean {
   return true;
 }
 
-function matchesDeviceCondition(userDevice: string, condition: any): boolean {
-  if (condition.devices && !condition.devices.includes(userDevice)) {
+function matchesDeviceCondition(userDevice: string, condition: Record<string, unknown>): boolean {
+  if (condition.devices && Array.isArray(condition.devices) && !condition.devices.includes(userDevice)) {
     return false;
   }
   return true;
 }
 
-function matchesTimeCondition(timeOfDay: number, condition: any): boolean {
-  if (condition.hourStart !== undefined && timeOfDay < condition.hourStart) {
+function matchesTimeCondition(timeOfDay: number, condition: Record<string, unknown>): boolean {
+  if (condition.hourStart !== undefined && timeOfDay < (condition.hourStart as number)) {
     return false;
   }
-  if (condition.hourEnd !== undefined && timeOfDay > condition.hourEnd) {
+  if (condition.hourEnd !== undefined && timeOfDay > (condition.hourEnd as number)) {
     return false;
   }
-  if (condition.daysOfWeek && !condition.daysOfWeek.includes(new Date().getDay())) {
+  if (condition.daysOfWeek && Array.isArray(condition.daysOfWeek) && !condition.daysOfWeek.includes(new Date().getDay())) {
     return false;
   }
   return true;
 }
 
-async function getBudgetPacing(campaignId: string): Promise<any> {
+interface BudgetPacing {
+  pace_multiplier?: number;
+}
+
+async function getBudgetPacing(campaignId: string): Promise<BudgetPacing | null> {
   const client = createAdminClient();
   const today = new Date().toISOString().split("T")[0];
 

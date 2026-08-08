@@ -2,7 +2,6 @@
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { generateRandomString } from "@/shared/lib/random";
-import type { AdCampaign, AdCreative, AdvertiserAccount } from "./types";
 
 // Advertiser account creation
 export async function registerAdvertiser(params: {

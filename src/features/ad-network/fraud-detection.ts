@@ -133,14 +133,17 @@ export async function recordFraudAnalysis(
 export async function getCampaignFraudRate(campaignId: string): Promise<number> {
   const client = createAdminClient();
 
-  const { data, error } = await client.from("click_fraud_detection").select("count");
+  const { data, error } = await client
+    .from("click_fraud_detection")
+    .select("*")
+    .eq("campaign_id", campaignId);
 
   if (error) {
     console.error("Error getting fraud rate:", error);
     return 0;
   }
 
-  const fraudulentCount = (data?.filter((d) => d.is_fraudulent) || []).length;
+  const fraudulentCount = (data?.filter((d: Record<string, unknown>) => d.is_fraudulent) || []).length;
   const totalCount = data?.length || 1;
 
   return (fraudulentCount / totalCount) * 100;
@@ -239,7 +242,7 @@ async function detectUnusualPattern(campaignId: string, pageUrl?: string): Promi
 
   // If >50% of clicks are from same source, it's suspicious
   const urlCounts = new Map<string, number>();
-  data.forEach((click) => {
+  data.forEach(() => {
     const count = urlCounts.get(pageUrl || "unknown") || 0;
     urlCounts.set(pageUrl || "unknown", count + 1);
   });

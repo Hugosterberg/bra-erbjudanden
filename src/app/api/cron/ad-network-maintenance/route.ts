@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import { checkCampaignHealth, autoPauseBadCampaigns } from "@/features/ad-network/campaign-alerts";
-import { autoPauseBadCampaigns as autoPauseCampaigns } from "@/features/ad-network/campaign-alerts";
+import { checkCampaignHealth } from "@/features/ad-network/campaign-alerts";
 import { generateBidSuggestion, saveBidSuggestion } from "@/features/ad-network/smart-bidding";
+
+interface MetricEntry {
+  impressions: number;
+  clicks: number;
+  spend_sek: number;
+}
 
 export async function POST(request: NextRequest) {
   // Verify cron secret
@@ -79,10 +84,10 @@ export async function POST(request: NextRequest) {
       .select("id, bid_amount, pricing_model");
 
     // Build aggregated metrics
-    const metricsMap = new Map<string, any>();
+    const metricsMap = new Map<string, MetricEntry>();
 
     if (impressions) {
-      impressions.forEach((imp) => {
+      impressions.forEach((imp: Record<string, unknown>) => {
         const key = `${imp.campaign_id}|${imp.placement_id}`;
         const existing = metricsMap.get(key) || { impressions: 0, clicks: 0, spend_sek: 0 };
         existing.impressions += 1;
@@ -91,10 +96,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (clicks) {
-      clicks.forEach((click) => {
+      clicks.forEach((click: Record<string, unknown>) => {
         // Find all entries for this campaign and update clicks
         for (const [key, value] of metricsMap.entries()) {
-          if (key.startsWith(click.campaign_id)) {
+          if (key.startsWith(click.campaign_id as string)) {
             value.clicks += 1;
           }
         }

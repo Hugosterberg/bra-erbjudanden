@@ -2,7 +2,7 @@ import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
 import { createMetadata } from "@/shared/lib/seo";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import { TrendingUp, DollarSign, Eye, MousePointerClick, AlertCircle, Target } from "lucide-react";
+import { DollarSign, Eye, MousePointerClick, AlertCircle } from "lucide-react";
 
 export const metadata = createMetadata({
   title: "Intäkter Pro - Advanced Monetization",

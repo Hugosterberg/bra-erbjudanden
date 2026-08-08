@@ -71,7 +71,7 @@ export default async function AdminAdsPage() {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">Väntande godkännande</h2>
             <div className="divide-y rounded-lg border bg-white dark:border-neutral-800 dark:bg-neutral-900">
-              {pendingCampaigns.data.map((campaign: any) => (
+              {pendingCampaigns.data.map((campaign: Record<string, unknown>) => (
                 <div key={campaign.id} className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -104,7 +104,7 @@ export default async function AdminAdsPage() {
           <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">Aktiva kampanjer</h2>
           {activeCampaigns.data && activeCampaigns.data.length > 0 ? (
             <div className="divide-y rounded-lg border bg-white dark:border-neutral-800 dark:bg-neutral-900">
-              {activeCampaigns.data.map((campaign: any) => (
+              {activeCampaigns.data.map((campaign: Record<string, unknown>) => (
                 <div key={campaign.id} className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

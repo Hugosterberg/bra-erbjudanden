@@ -26,7 +26,7 @@ export default function AffiliateDisclosurePage() {
               samma pris som om du hade gått direkt till butiken.
             </p>
             <p className="mt-3 text-neutral-700 dark:text-neutral-300">
-              Affiliatelänkar är märkta med en "Affiliate"-badge för full transparens.
+              Affiliatelänkar är märkta med en &quot;Affiliate&quot;-badge för full transparens.
             </p>
           </section>
 
@@ -85,7 +85,7 @@ export default function AffiliateDisclosurePage() {
             <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white">Sponsored offers (sponsrade erbjudanden)</h2>
             <p className="mt-3 text-neutral-700 dark:text-neutral-300">
               Ibland kan en butik välja att betala extra för att få sitt erbjudande framhävt. Dessa erbjudanden märks tydligt som
-              "Sponsored" så du vet att det är en betald placering.
+              &quot;Sponsored&quot; så du vet att det är en betald placering.
             </p>
             <p className="mt-3 text-neutral-700 dark:text-neutral-300">
               Sponsrade erbjudanden väljs aldrig bara för pengars skull — vi visar bara relevanta och värdefulla erbjudanden.

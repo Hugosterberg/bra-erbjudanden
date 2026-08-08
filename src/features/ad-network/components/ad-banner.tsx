@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { recordAdImpression, recordAdClick } from "@/features/ad-network/actions";
@@ -68,7 +69,7 @@ export function AdBanner({ campaign, creative, placement, sessionId, className =
         rel="noopener noreferrer"
         className={`block overflow-hidden rounded-lg border transition-opacity hover:opacity-80 ${className}`}
       >
-        <img
+        <Image
           src={creative.image_url}
           alt={creative.image_alt_text || creative.headline || "Ad"}
           width={placement.width || 300}
@@ -86,7 +87,6 @@ export function AdBanner({ campaign, creative, placement, sessionId, className =
       <div
         className={`rounded-lg border ${className}`}
         onClick={handleClick}
-        // eslint-disable-next-line react-no-danger
         dangerouslySetInnerHTML={{ __html: creative.html_content }}
       />
     );

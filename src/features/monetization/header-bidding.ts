@@ -48,14 +48,14 @@ export async function runHeaderBidding(request: HeaderBidRequest): Promise<BidRe
     }
 
     // 2. Run parallel bids to all networks
-    const bidPromises = bidConfigs.map((config: any) =>
+    const bidPromises = bidConfigs.map((config: Record<string, unknown>) =>
       fetchBidFromNetwork(
-        config.ad_networks,
+        config.ad_networks as Record<string, unknown>,
         {
           width: request.width,
           height: request.height,
-          floorPrice: config.floor_price,
-          bidModifier: config.bid_modifier,
+          floorPrice: config.floor_price as number | undefined,
+          bidModifier: config.bid_modifier as number,
         },
         request.userContext,
       ),
@@ -96,14 +96,13 @@ export async function runHeaderBidding(request: HeaderBidRequest): Promise<BidRe
 }
 
 async function fetchBidFromNetwork(
-  network: any,
+  network: Record<string, unknown>,
   adParams: {
     width: number;
     height: number;
     floorPrice?: number;
     bidModifier: number;
   },
-  userContext?: any,
 ): Promise<BidResponse | null> {
   try {
     // Simulate API call to ad network

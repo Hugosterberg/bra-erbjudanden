@@ -56,7 +56,7 @@ export async function getOptimalAffiliatePlacement(context: PlacementContext): P
   const callToAction = generateCTA(offer, placement);
 
   return {
-    placement: placement as any,
+    placement: placement as string,
     format: getFormatForPlacement(placement),
     expectedCTR: avgCTR,
     expectedConversion: avgConversion,
@@ -120,8 +120,8 @@ function getFormatForPlacement(placement: string): "link" | "button" | "card" | 
   return formats[placement] || "link";
 }
 
-function generateCTA(offer: any, placement: string): string {
-  const discount = offer?.discount_value || 0;
+function generateCTA(offer: Record<string, unknown> | null, placement: string): string {
+  const discount = (offer?.discount_value as number) || 0;
   const discountText = discount > 0 ? ` - ${discount}% rabatt` : "";
 
   const ctas: Record<string, string> = {
@@ -215,11 +215,11 @@ export async function getHighCommissionOffers(limit: number = 5): Promise<
     return [];
   }
 
-  return offers.map((item: any) => ({
-    offerId: item.offer_id,
-    title: item.offers?.title || "Unknown",
-    discount: item.offers?.discount_value || 0,
-    estimatedCommission: item.revenue_usd || 0,
+  return offers.map((item: Record<string, unknown>) => ({
+    offerId: item.offer_id as string,
+    title: (item.offers as Record<string, unknown>)?.title as string || "Unknown",
+    discount: (item.offers as Record<string, unknown>)?.discount_value as number || 0,
+    estimatedCommission: item.revenue_usd as number || 0,
     conversionProbability: 0.75, // Estimated
   }));
 }
@@ -255,9 +255,9 @@ export async function getContextualRecommendations(
     return [];
   }
 
-  return relevantOffers.map((offer: any, index: number) => ({
-    offerId: offer.id,
-    title: offer.title,
+  return relevantOffers.map((offer: Record<string, unknown>, index: number) => ({
+    offerId: offer.id as string,
+    title: offer.title as string,
     relevanceScore: 0.8 - index * 0.1,
     expectedRevenue: 25 - index * 5,
     callToAction: `Se detta erbjudande`,
@@ -289,9 +289,9 @@ export async function recordAffiliateLinkPerformance(params: {
   }
 
   // Update counters
-  const updates: any = {};
+  const updates: Record<string, number> = {};
   if (params.eventType === "impression") {
-    updates.impressions = (data?.impressions || 0) + 1;
+    updates.impressions = ((data as Record<string, unknown>)?.impressions as number || 0) + 1;
   } else if (params.eventType === "click") {
     updates.clicks = (data?.clicks || 0) + 1;
   } else if (params.eventType === "conversion") {

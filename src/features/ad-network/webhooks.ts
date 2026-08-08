@@ -96,10 +96,16 @@ export async function sendWebhookEvent(
   }
 }
 
+interface Webhook {
+  id: string;
+  webhook_url: string;
+  signing_secret: string;
+}
+
 async function deliverWebhook(
-  webhook: any,
+  webhook: Webhook,
   payload: WebhookPayload,
-  client: any,
+  client: ReturnType<typeof createAdminClient>,
 ): Promise<{ success: boolean }> {
   const signature = createWebhookSignature(payload, webhook.signing_secret);
 

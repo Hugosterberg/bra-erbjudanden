@@ -2,11 +2,9 @@
 
 import { createClient } from "@/shared/lib/supabase/server";
 import type {
-  AdvertiserAccount,
   AdCampaign,
   AdCreative,
   AdPlacement,
-  AdMetricsDaily,
   CampaignPerformance,
 } from "./types";
 
@@ -43,10 +41,10 @@ export async function findPlacementById(placementId: string): Promise<AdPlacemen
   return data || null;
 }
 
-export async function findCampaignsByPlacement(placementId: string): Promise<AdCampaign[]> {
+export async function findCampaignsByPlacement(): Promise<AdCampaign[]> {
   const client = createClient();
 
-  // Find active campaigns for this placement
+  // Find active campaigns
   const now = new Date().toISOString();
 
   const { data, error } = await client
