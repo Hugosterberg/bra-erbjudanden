@@ -22,6 +22,7 @@ export const siteConfig = {
   url: normalizeSiteUrl(resolveSiteUrl()),
   description:
     "Hitta bra erbjudanden, rabatter och rabattkoder från svenska butiker. Handplockade kampanjer och deals – alltid aktiva, aldrig utgångna.",
+  contactEmail: "hello@braerbjudanden.se",
   locale: "sv_SE",
   keywords: [
     "bra erbjudanden",

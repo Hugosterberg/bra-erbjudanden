@@ -10,10 +10,15 @@ Projektet ska byggas med Next.js App Router och vertical slice architecture.
 src/
   app/
     (public)/
-      page.tsx
-      offers/
-      stores/
-      categories/
+      erbjudanden/
+      rabattkoder/
+      butiker/
+      kategorier/
+      bast-i-test/
+      recensioner/
+      guider/
+      sok/
+      partner/
     admin/
     api/
   features/

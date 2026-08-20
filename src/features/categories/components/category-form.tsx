@@ -33,6 +33,10 @@ export function CategoryForm({ category, action }: CategoryFormProps) {
         <Textarea id="description" name="description" defaultValue={category?.description ?? ""} />
       </div>
       <div className="grid gap-2">
+        <Label htmlFor="seo_intro">SEO-intro</Label>
+        <Textarea id="seo_intro" name="seo_intro" defaultValue={category?.seo_intro ?? ""} />
+      </div>
+      <div className="grid gap-2">
         <Label>Status</Label>
         <Select name="status" defaultValue={category?.status ?? "active"}>
           <SelectTrigger>

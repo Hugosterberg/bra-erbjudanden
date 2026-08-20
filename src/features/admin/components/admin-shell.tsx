@@ -1,6 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Download, LayoutDashboard, LogOut, MailCheck, Store, Tags, TrendingUp, Megaphone } from "lucide-react";
+import {
+  BookOpen,
+  Download,
+  LayoutDashboard,
+  LogOut,
+  MailCheck,
+  Megaphone,
+  Package,
+  Store,
+  Tags,
+  TrendingUp,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +26,8 @@ const adminNavigation = [
   { href: "/admin/prenumeranter", label: "Prenumeranter", icon: MailCheck },
   { href: "/admin/butiker", label: "Butiker", icon: Store },
   { href: "/admin/kategorier", label: "Kategorier", icon: Tags },
+  { href: "/admin/artiklar", label: "Artiklar", icon: BookOpen },
+  { href: "/admin/produkter", label: "Produkter", icon: Package },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {

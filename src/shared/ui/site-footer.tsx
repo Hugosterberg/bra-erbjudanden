@@ -114,7 +114,32 @@ export function SiteFooter() {
               © {new Date().getFullYear()} braerbjudanden.se · Alla priser med
               reservation för ändringar.
             </p>
-            <p>Byggt i Sverige · Endast aktiva erbjudanden</p>
+            <nav className="flex flex-wrap gap-x-4 gap-y-1">
+              <Link href="/erbjudanden" className="hover:text-foreground">
+                Erbjudanden
+              </Link>
+              <Link href="/rabattkoder" className="hover:text-foreground">
+                Rabattkoder
+              </Link>
+              <Link href="/bast-i-test" className="hover:text-foreground">
+                Bäst i test
+              </Link>
+              <Link href="/butiker" className="hover:text-foreground">
+                Butiker
+              </Link>
+              <Link href="/kategorier" className="hover:text-foreground">
+                Kategorier
+              </Link>
+              <Link href="/guider" className="hover:text-foreground">
+                Guider
+              </Link>
+              <Link href="/partner" className="hover:text-foreground">
+                Partner
+              </Link>
+              <Link href="/affiliatedisclosure" className="hover:text-foreground">
+                Annonsinformation
+              </Link>
+            </nav>
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@ export function MainNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="hidden items-center gap-1 text-sm md:flex">
+    <nav className="hidden items-center gap-0.5 text-[13px] lg:flex">
       {items.map((item) => {
         const isActive =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -25,7 +25,7 @@ export function MainNav({ items }: { items: NavItem[] }) {
             href={item.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "relative rounded-md px-3 py-2 font-medium text-muted-foreground transition-colors hover:text-foreground",
+              "relative rounded-md px-2.5 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground lg:px-3 lg:text-sm",
               isActive && "text-foreground",
             )}
           >

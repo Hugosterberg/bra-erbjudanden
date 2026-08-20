@@ -17,6 +17,7 @@ function categoryFormDataToInput(formData: FormData) {
     name: String(formData.get("name") ?? ""),
     slug: String(formData.get("slug") ?? ""),
     description: String(formData.get("description") ?? ""),
+    seo_intro: String(formData.get("seo_intro") ?? ""),
     status: String(formData.get("status") ?? "active"),
   };
 }

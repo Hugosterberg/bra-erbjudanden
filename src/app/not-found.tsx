@@ -12,7 +12,7 @@ export const metadata = createMetadata({
 });
 
 const quickLinks = [
-  { href: "/#erbjudanden", label: "Alla erbjudanden", icon: Tags },
+  { href: "/erbjudanden", label: "Alla erbjudanden", icon: Tags },
   { href: "/butiker", label: "Butiker", icon: Store },
 ];
 
@@ -32,8 +32,9 @@ export default function NotFound() {
             Sidan finns inte
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Sidan du letade efter kan ha flyttats eller så har erbjudandet gått
-            ut. Vi visar aldrig utgångna deals – men det finns gott om aktiva.
+            Sidan du letade efter kan ha flyttats. Utgångna erbjudanden ligger
+            kvar med alternativa deals – annars finns aktuella rabatter på
+            startsidan.
           </p>
           <div className="mt-8 grid gap-2">
             <Button asChild size="lg" className="h-11">

@@ -84,12 +84,18 @@ function offerFormDataToInput(formData: FormData) {
     status: String(formData.get("status") ?? "draft"),
     rank_position: String(formData.get("rank_position") ?? "100"),
     is_featured: formData.get("is_featured") === "on",
+    is_sponsored: formData.get("is_sponsored") === "on",
+    is_exclusive: formData.get("is_exclusive") === "on",
+    mark_verified: formData.get("mark_verified") === "on",
+    original_price: String(formData.get("original_price") ?? ""),
+    current_price: String(formData.get("current_price") ?? ""),
   };
 }
 
 function revalidateOfferSurfaces() {
   revalidatePath("/");
   revalidatePath("/erbjudanden");
+  revalidatePath("/rabattkoder");
   revalidatePath("/butiker");
   revalidatePath("/kategorier");
   revalidatePath("/admin");

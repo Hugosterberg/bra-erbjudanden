@@ -103,7 +103,8 @@ create table if not exists public.affiliate_disclosure_settings (
   faq_url text,
   show_disclosure_badge boolean not null default true,
   show_network_attribution boolean not null default true,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (site_name)
 );
 
 -- Insert default disclosure settings

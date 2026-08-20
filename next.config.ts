@@ -8,22 +8,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "6mb",
     },
   },
-  async redirects() {
-    return [
-      {
-        // Rabattkoder and the standalone Erbjudanden page were consolidated into
-        // the offers section on the homepage.
-        source: "/rabattkoder",
-        destination: "/#erbjudanden",
-        permanent: true,
-      },
-      {
-        source: "/erbjudanden",
-        destination: "/#erbjudanden",
-        permanent: false,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

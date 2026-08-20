@@ -80,6 +80,14 @@ export function StoreForm({ store, action }: StoreFormProps) {
         <Textarea id="description" name="description" defaultValue={store?.description ?? ""} />
       </div>
       <div className="grid gap-2">
+        <Label htmlFor="seo_intro">SEO-intro (visas på butikssidan)</Label>
+        <Textarea id="seo_intro" name="seo_intro" defaultValue={store?.seo_intro ?? ""} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="saving_tips">Spartips</Label>
+        <Textarea id="saving_tips" name="saving_tips" defaultValue={store?.saving_tips ?? ""} />
+      </div>
+      <div className="grid gap-2">
         <Label htmlFor="website_url">Webbplats</Label>
         <Input
           id="website_url"
@@ -88,6 +96,16 @@ export function StoreForm({ store, action }: StoreFormProps) {
           value={websiteUrl}
           onChange={(event) => setWebsiteUrl(event.target.value)}
           placeholder="https://exempel.se"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="affiliate_url">Standard-affiliatelänk (valfritt)</Label>
+        <Input
+          id="affiliate_url"
+          name="affiliate_url"
+          type="url"
+          defaultValue={store?.affiliate_url ?? ""}
+          placeholder="https://..."
         />
       </div>
 
@@ -151,6 +169,15 @@ export function StoreForm({ store, action }: StoreFormProps) {
         />
       </div>
 
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input
+          type="checkbox"
+          name="is_featured"
+          defaultChecked={store?.is_featured ?? false}
+          className="size-4"
+        />
+        Utvald butik
+      </label>
       <div className="grid gap-2">
         <Label>Status</Label>
         <Select name="status" defaultValue={store?.status ?? "active"}>

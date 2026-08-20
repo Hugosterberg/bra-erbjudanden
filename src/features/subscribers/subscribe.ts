@@ -1,5 +1,7 @@
+import { recordDiscoveryEvent } from "@/features/tracking/discovery-events";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
+import { parseInterestIds } from "./interests";
 import { subscriberSchema } from "./schemas";
 
 const newsletterConsentText =
@@ -25,6 +27,7 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
     email: String(input.get("email") ?? ""),
     source: String(input.get("source") ?? "homepage"),
     company: String(input.get("company") ?? ""),
+    interests: input.getAll("interests").map(String),
   });
 
   if (!parsed.success) {
@@ -52,12 +55,13 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
 
   const email = parsed.data.email.trim().toLowerCase();
   const source = normalizeSource(parsed.data.source);
+  const interests = parseInterestIds(parsed.data.interests ?? []);
   const now = new Date().toISOString();
 
   try {
     const { data: existing, error: lookupError } = await supabase
       .from("deal_subscribers")
-      .select("id, signup_count, signup_sources")
+      .select("id, signup_count, signup_sources, interests")
       .eq("email", email)
       .maybeSingle();
 
@@ -74,6 +78,9 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
       const signupSources = existingSources.includes(source)
         ? existingSources
         : [...existingSources, source];
+      const mergedInterests = Array.from(
+        new Set([...(existing.interests ?? []), ...interests]),
+      );
 
       const { error } = await supabase
         .from("deal_subscribers")
@@ -85,6 +92,7 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
           last_signup_at: now,
           signup_count: existing.signup_count + 1,
           signup_sources: signupSources,
+          interests: mergedInterests,
         })
         .eq("id", existing.id);
 
@@ -105,6 +113,7 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
         last_signup_at: now,
         signup_count: 1,
         signup_sources: [source],
+        interests,
       });
 
       if (error) {
@@ -123,6 +132,12 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
       message: "Kunde inte spara just nu. Försök igen om en stund.",
     };
   }
+
+  await recordDiscoveryEvent({
+    eventType: "newsletter_signup",
+    entityType: "subscriber",
+    metadata: { source, interests: interests.join(",") },
+  });
 
   return {
     ok: true,

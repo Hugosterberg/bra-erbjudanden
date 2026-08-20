@@ -70,8 +70,12 @@ function storeFormDataToInput(formData: FormData) {
     name: String(formData.get("name") ?? ""),
     slug: String(formData.get("slug") ?? ""),
     description: String(formData.get("description") ?? ""),
+    seo_intro: String(formData.get("seo_intro") ?? ""),
+    saving_tips: String(formData.get("saving_tips") ?? ""),
     website_url: String(formData.get("website_url") ?? ""),
+    affiliate_url: String(formData.get("affiliate_url") ?? ""),
     logo_url: String(formData.get("logo_url") ?? ""),
+    is_featured: formData.get("is_featured") === "on",
     status: String(formData.get("status") ?? "active"),
   };
 }

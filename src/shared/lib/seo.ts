@@ -8,6 +8,7 @@ type SeoInput = {
   path?: string;
   /** Use the full title as-is in <title>, bypassing the layout template. */
   absoluteTitle?: boolean;
+  index?: boolean;
 };
 
 export function createMetadata({
@@ -15,6 +16,7 @@ export function createMetadata({
   description,
   path = "/",
   absoluteTitle = false,
+  index = true,
 }: SeoInput): Metadata {
   const url = createAbsoluteUrl(path);
   const fullTitle = title === siteConfig.name ? title : `${title} | ${siteConfig.name}`;
@@ -29,6 +31,12 @@ export function createMetadata({
     alternates: {
       canonical: url,
     },
+    robots: index
+      ? undefined
+      : {
+          index: false,
+          follow: true,
+        },
     openGraph: {
       title: fullTitle,
       description,

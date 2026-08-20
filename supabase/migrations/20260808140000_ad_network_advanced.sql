@@ -215,4 +215,4 @@ create policy "admin_view_webhooks"
 
 create policy "public_view_conversions"
   on public.ad_conversions for insert
-  using (true);
+  with check (true);

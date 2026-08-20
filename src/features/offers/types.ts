@@ -15,6 +15,9 @@ export type OfferWithRelations = Offer & {
   code_click_count?: number;
 };
 
+/** Offer titles are headings, so lists must adapt to the surrounding page. */
+export type OfferHeadingLevel = "h2" | "h3";
+
 export type OfferRedirectTarget = Pick<
   Offer,
   "id" | "affiliate_url" | "store_id" | "status" | "starts_at" | "ends_at"

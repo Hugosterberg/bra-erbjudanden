@@ -1,9 +1,12 @@
+import { cache } from "react";
+
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import type { Store } from "./types";
 
-export async function findActiveStores(): Promise<Store[]> {
+// Cached per request so generateMetadata and the page body share one query.
+export const findActiveStores = cache(async (): Promise<Store[]> => {
   const supabase = getSupabasePublicClient();
 
   if (!supabase) {
@@ -17,9 +20,9 @@ export async function findActiveStores(): Promise<Store[]> {
     .order("name", { ascending: true });
 
   return (data ?? []) as Store[];
-}
+});
 
-export async function findActiveStoreBySlug(slug: string): Promise<Store | null> {
+export const findActiveStoreBySlug = cache(async (slug: string): Promise<Store | null> => {
   const supabase = getSupabasePublicClient();
 
   if (!supabase) {
@@ -31,10 +34,10 @@ export async function findActiveStoreBySlug(slug: string): Promise<Store | null>
     .select("*")
     .eq("slug", slug)
     .eq("status", "active")
-    .single();
+    .maybeSingle();
 
   return (data as Store | null) ?? null;
-}
+});
 
 export async function findAdminStores(): Promise<Store[]> {
   const supabase = getSupabaseAdminClient();

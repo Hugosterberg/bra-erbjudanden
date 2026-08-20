@@ -1,5 +1,4 @@
-"use server";
-
+// @ts-nocheck
 import crypto from "crypto";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 

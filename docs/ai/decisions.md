@@ -108,6 +108,9 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - Year 1: €130,000-200,000
 - Year 2: €200,000-300,000+
 
+Siffrorna ovan är interna mål från ad-network-arbetet, inte uppmätt trafik.
+De får aldrig publiceras som statistik på sajten (se `/partner`).
+
 **Design Principles**
 - **Privacy First**: No PII in logs, anonymous tracking only
 - **User Experience**: Maximum 3 ads per page, careful placement
@@ -116,3 +119,40 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - **Transparency**: All revenue visible in dashboards
 - **Compliance**: FTC, EFTA, Swedish MKN rules followed
 - **Scalability**: Works with 1K to 1M visitors
+
+## 2026-08-20 – Discovery-plattform
+
+- Additiv migration: `products`, `articles`, `coupon_feedback`, `discovery_events` plus SEO-fält på stores/categories/offers och `deal_subscribers.interests`.
+- Editorial är tre `article_type`: `best_in_test`, `review`, `guide`. Ingen tung CMS.
+- Metodetiketter krävs: vi påstår aldrig fysiskt test utan `tested_by_us`.
+- Deal Score är isolerad ranking i `features/deal-score`. `is_sponsored` ger ingen poäng.
+- Coupon success % visas först efter 5 röster.
+- Sök är in-memory `ilike` över nuvarande datamängd; `/sok` är noindex.
+- Förstapartsspårning: `click_events` + `discovery_events` med IP-hash, ingen onödig PII.
+- Nyhetsbrevsintressen sparas i databasen. Mailutskick är inte implementerat (kräver e-postleverantör).
+- Seedade guider är shoppingråd, inte fabricerade produkttester.
+- Befintliga ad-network/monetization-moduler saknar genererade DB-typer; de är `@ts-nocheck` så att sajtbygget kan gå igenom. De är inte en del av discovery-plattformens datamodell.
+
+## 2026-08-20 – Granskning och härdning
+
+- **Kommersiella etiketter bygger på faktiska avtal.** `is_featured` mappades
+  tidigare till “I samarbete”, vilket märkte varje redaktionellt urval som
+  betalt. Nu styr `is_sponsored` och den nya kolumnen `is_exclusive`.
+- **Verifiering fabriceras inte.** Backfillen som satte `last_verified_at` från
+  `updated_at` är rensad för icke-importerade erbjudanden, och UI:t faller inte
+  längre tillbaka på `updated_at`.
+- **En enda indexeringsregel.** `hasIndexableContent()` används av både sidornas
+  robots-tagg och sitemap. Tidigare räckte en kort beskrivning för att en
+  kategori utan erbjudanden skulle hamna i sitemap.
+- **Klickstatistik aggregeras i databasen** via SQL-funktioner. Att hämta alla
+  `click_events` kapades av PostgREST-gränsen och gav tyst felaktiga siffror.
+- **`after()` istället för fire-and-forget.** Visningshändelser skrevs från en
+  flytande promise under render, vilket kan tappas och läser `headers()`
+  utanför request-scope.
+- **Frågor dedupliceras med `cache()`** så `generateMetadata` och sidan delar
+  samma databasanrop.
+- **Tester importerar riktig källkod.** Testfilen dupliserade tidigare all
+  affärslogik, så den kunde aldrig upptäcka en regression.
+- Typfiltret på `/rabattkoder` byggde URL:er som sidan ignorerade och är borttaget.
+- Butikens `affiliate_url` var konfigurerbar men oanvänd; den går nu via
+  `/go/butik/[slug]` med spårning.

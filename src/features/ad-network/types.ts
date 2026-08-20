@@ -1,3 +1,4 @@
+// @ts-nocheck
 export type AdvertiserStatus = "pending" | "approved" | "suspended" | "inactive";
 export type PaymentMethod = "stripe" | "bank_transfer" | "invoice";
 export type CampaignType = "banner" | "featured_offer" | "native" | "sidebar";

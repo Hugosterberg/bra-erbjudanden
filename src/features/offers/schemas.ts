@@ -2,6 +2,11 @@ import { z } from "zod";
 
 import { createSlug } from "@/shared/lib/slug";
 
+const optionalPrice = z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? undefined : value),
+  z.coerce.number().positive().optional(),
+);
+
 export const offerSchema = z
   .object({
     title: z.string().trim().min(3, "Titel krävs"),
@@ -26,6 +31,11 @@ export const offerSchema = z
     status: z.enum(["draft", "published", "archived"]),
     rank_position: z.coerce.number().int().min(0),
     is_featured: z.coerce.boolean().default(false),
+    is_sponsored: z.coerce.boolean().default(false),
+    is_exclusive: z.coerce.boolean().default(false),
+    mark_verified: z.coerce.boolean().default(false),
+    original_price: optionalPrice,
+    current_price: optionalPrice,
   })
   .refine(
     (value) =>
@@ -66,5 +76,12 @@ export function normalizeOfferInput(input: OfferInput) {
     status: input.status,
     rank_position: input.rank_position,
     is_featured: input.is_featured,
+    is_sponsored: input.is_sponsored,
+    is_exclusive: input.is_exclusive,
+    original_price:
+      input.original_price === undefined ? null : Number(input.original_price),
+    current_price:
+      input.current_price === undefined ? null : Number(input.current_price),
+    ...(input.mark_verified ? { last_verified_at: new Date().toISOString() } : {}),
   };
 }

@@ -10,6 +10,7 @@
     "supabase": "node scripts/supabase-cli.mjs",
     "db:list": "node scripts/supabase-cli.mjs migration list",
     "db:push": "node scripts/supabase-cli.mjs db push",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/test-affiliate-import.mjs scripts/test-discovery.mjs",
     "test:import": "node --test scripts/test-affiliate-import.mjs"
   },
   "dependencies": {

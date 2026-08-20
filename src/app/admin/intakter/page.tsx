@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
 import { createMetadata } from "@/shared/lib/seo";

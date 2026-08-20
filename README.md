@@ -20,6 +20,7 @@ Configure these variables in `.env.local`:
 - `CLICK_HASH_SALT` for privacy-conscious IP hashing
 - `ADMIN_PASSWORD` for password-only admin login at `/admin`
 - `CRON_SECRET` for securing the nightly affiliate import cron job
+- Optional: `NEXT_PUBLIC_SITE_URL` for canonical URLs in production
 - Affiliate network credentials (enable only the networks you are approved on):
   - `ADDREVENUE_API_TOKEN` + `ADDREVENUE_CHANNEL_ID`
   - `ADTRACTION_API_TOKEN` + `ADTRACTION_CHANNEL_ID`
@@ -30,8 +31,29 @@ Configure these variables in `.env.local`:
 Affiliate imports run on a schedule via Vercel Cron and can be triggered manually from `/admin/import`.
 
 ```bash
+npm test
 npm run test:import
 ```
+
+Apply all SQL migrations in `supabase/migrations/`, including the discovery-platform tables (`products`, `articles`, `coupon_feedback`, `discovery_events`) and editorial guide seed.
+
+## Public routes
+
+- `/` homepage
+- `/erbjudanden` and `/erbjudanden/[slug]`
+- `/rabattkoder`
+- `/butiker` and `/butiker/[slug]`
+- `/kategorier` and `/kategorier/[slug]`
+- `/bast-i-test` and `/bast-i-test/[slug]`
+- `/recensioner` and `/recensioner/[slug]`
+- `/guider` and `/guider/[slug]`
+- `/sok` (noindex)
+- `/partner`
+- `/kampanjer`
+- `/affiliatedisclosure`
+- `/go/[offerId]` affiliate redirect
+
+Admin editorial: `/admin/artiklar` and `/admin/produkter`.
 
 ## Data persistence
 

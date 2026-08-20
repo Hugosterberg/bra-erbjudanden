@@ -1,30 +1,40 @@
 import Link from "next/link";
-import { ArrowUpRight, Sparkles, Store, Timer } from "lucide-react";
+import { ArrowUpRight, Store, Timer } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { scoreOffer } from "@/features/deal-score/from-offer";
+import { StoreLogo } from "@/shared/ui/store-logo";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
 import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
+import { OfferStatusBadges } from "./offer-status-badges";
 import { OfferTerms } from "./offer-terms";
-import { StoreLogo } from "@/shared/ui/store-logo";
 import {
   formatDiscount,
   formatOfferCtaLabel,
   formatOfferValidity,
-  formatRedemptionType,
 } from "../format";
-import type { OfferWithRelations } from "../types";
+import type { OfferHeadingLevel, OfferWithRelations } from "../types";
 
-export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
+export function OfferList({
+  offers,
+  headingLevel = "h2",
+}: {
+  offers: OfferWithRelations[];
+  headingLevel?: OfferHeadingLevel;
+}) {
+  const Heading = headingLevel;
+
   if (offers.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed bg-card p-10 text-center ring-1 ring-foreground/5">
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Store className="size-5" />
         </div>
-        <h2 className="mt-4 text-lg font-semibold">Inga aktiva erbjudanden just nu</h2>
+        <Heading className="mt-4 text-lg font-semibold">
+          Inga aktiva erbjudanden just nu
+        </Heading>
         <p className="mt-2 text-sm text-muted-foreground">
           Nya deals dyker upp löpande. Bevaka så hör du av oss när det finns
           något riktigt bra.
@@ -36,7 +46,10 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
   return (
     <div className="overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/10">
       <ul className="divide-y divide-border/70">
-        {offers.map((offer) => (
+        {offers.map((offer) => {
+          const score = scoreOffer(offer, offer.click_count ?? 0).score;
+
+          return (
           <li
             key={offer.id}
             className="group grid gap-4 p-4 transition-colors hover:bg-muted/40 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:p-5 lg:grid-cols-[9.5rem_minmax(0,1fr)_17rem] lg:items-stretch"
@@ -51,9 +64,9 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
 
             <div className="flex min-w-0 flex-col gap-2">
               <Link href={`/erbjudanden/${offer.slug}`} className="block">
-                <h2 className="line-clamp-2 text-lg font-semibold leading-6 tracking-tight transition-colors group-hover:text-primary">
+                <Heading className="line-clamp-2 text-lg font-semibold leading-6 tracking-tight transition-colors group-hover:text-primary">
                   {offer.title}
-                </h2>
+                </Heading>
               </Link>
 
               {offer.description ? (
@@ -78,24 +91,13 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
                   <Timer className="size-4 text-primary" />
                   {formatOfferValidity(offer.ends_at)}
                 </span>
-                {offer.category ? (
-                  <Badge variant="outline">{offer.category.name}</Badge>
-                ) : null}
                 <OfferTerms terms={offer.terms} />
               </div>
             </div>
 
             <div className="grid content-start gap-2 text-center sm:col-span-2 sm:mx-auto sm:w-full sm:max-w-sm lg:col-span-1 lg:mx-0 lg:max-w-none">
               <div className="mb-1 flex flex-wrap items-center justify-center gap-2 lg:-mt-1">
-                {offer.is_featured ? (
-                  <Badge className="gap-1">
-                    <Sparkles className="size-3" />
-                    Utvald
-                  </Badge>
-                ) : null}
-                <Badge variant="secondary">
-                  {formatRedemptionType(offer.redemption_type)}
-                </Badge>
+                <OfferStatusBadges offer={offer} score={score} />
               </div>
               <OfferDiscountBadge
                 discountType={offer.discount_type}
@@ -117,7 +119,8 @@ export function OfferList({ offers }: { offers: OfferWithRelations[] }) {
               </Button>
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

@@ -22,6 +22,36 @@ export function compareByDiscount(a: OfferWithRelations, b: OfferWithRelations) 
   return b.discount_value - a.discount_value;
 }
 
+export function formatPrice(value: number) {
+  return `${new Intl.NumberFormat("sv-SE").format(Math.round(value))} kr`;
+}
+
+/**
+ * Only a genuine markdown is worth showing: a "before" price that is not
+ * higher than the current one is either bad data or a misleading claim.
+ */
+export function resolveOfferPricing(offer: {
+  original_price: number | null;
+  current_price: number | null;
+}) {
+  const current = offer.current_price;
+
+  if (current === null) {
+    return null;
+  }
+
+  const original =
+    offer.original_price !== null && offer.original_price > current
+      ? offer.original_price
+      : null;
+
+  return {
+    current,
+    original,
+    savings: original === null ? null : original - current,
+  };
+}
+
 export function formatOfferValidity(date: string | null) {
   if (!date) {
     return "Tills vidare";

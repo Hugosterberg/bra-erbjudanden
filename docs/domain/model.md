@@ -23,6 +23,9 @@ Viktiga fält:
 - status: draft | published | archived
 - rank_position
 - is_featured
+- is_sponsored
+- last_verified_at
+- original_price / current_price
 - created_at
 - updated_at
 
@@ -36,8 +39,12 @@ Viktiga fält:
 - name
 - slug
 - description
+- seo_intro
+- saving_tips
 - website_url
+- affiliate_url
 - logo_url
+- is_featured
 - status
 - created_at
 - updated_at
@@ -52,8 +59,25 @@ Viktiga fält:
 - name
 - slug
 - description
+- seo_intro
 - created_at
 - updated_at
+
+### Product
+
+Produkt som kan recenseras eller jämföras i Bäst i test.
+
+### Article
+
+Redaktionellt innehåll: Bäst i test, recension eller guide.
+
+### CouponFeedback
+
+Anonym röst (ja/nej) per erbjudande och IP-hash.
+
+### DiscoveryEvent
+
+Förstapartshändelser som deal_view, coupon_copy, search och newsletter_signup.
 
 ### ClickEvent
 
@@ -86,6 +110,8 @@ Ett erbjudande ska visas publikt när:
 - starts_at är tomt eller passerat
 - ends_at är tomt eller framtida
 
+Utgångna URL:er kan ligga kvar med tydlig “har gått ut”-status.
+
 ## Sortering
 
 Standard publikt:
@@ -93,3 +119,5 @@ Standard publikt:
 1. Featured först, om relevant.
 2. Manuell rank_position.
 3. Senast uppdaterad eller skapad som fallback.
+
+Deal Score är en separat ranking och påverkas inte av sponsring.

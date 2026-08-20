@@ -6,6 +6,7 @@ export const categorySchema = z.object({
   name: z.string().trim().min(2, "Kategorinamn krävs"),
   slug: z.string().trim().optional(),
   description: z.string().trim().optional(),
+  seo_intro: z.string().trim().optional(),
   status: z.enum(["active", "inactive", "archived"]).default("active"),
 });
 
@@ -16,6 +17,7 @@ export function normalizeCategoryInput(input: CategoryInput) {
     name: input.name,
     slug: input.slug ? createSlug(input.slug) : createSlug(input.name),
     description: input.description || null,
+    seo_intro: input.seo_intro || null,
     status: input.status,
   };
 }

@@ -6,8 +6,11 @@ import { MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { NEWSLETTER_INTERESTS } from "../interests";
+
 type DealSignupFormProps = {
   source?: string;
+  showInterests?: boolean;
 };
 
 type SubscriberResult = {
@@ -20,7 +23,7 @@ const initialSubscriberState: SubscriberResult = {
   message: "",
 };
 
-export function DealSignupForm({ source = "homepage" }: DealSignupFormProps) {
+export function DealSignupForm({ source = "homepage", showInterests = true }: DealSignupFormProps) {
   const [state, setState] = useState<SubscriberResult>(initialSubscriberState);
   const [isPending, setIsPending] = useState(false);
 
@@ -83,6 +86,24 @@ export function DealSignupForm({ source = "homepage" }: DealSignupFormProps) {
           {isPending ? "Sparar..." : "Få erbjudanden"}
         </Button>
       </div>
+      {showInterests ? (
+        <fieldset className="space-y-2">
+          <legend className="text-xs font-medium text-muted-foreground">
+            Intressen (valfritt) – används när mailutskick kopplas på
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {NEWSLETTER_INTERESTS.map((interest) => (
+              <label
+                key={interest.id}
+                className="inline-flex items-center gap-1.5 rounded-full bg-background px-3 py-1 text-xs ring-1 ring-foreground/10"
+              >
+                <input type="checkbox" name="interests" value={interest.id} className="size-3.5" />
+                {interest.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       {state.message ? (
         <p
           className={state.ok ? "text-sm text-primary" : "text-sm text-destructive"}

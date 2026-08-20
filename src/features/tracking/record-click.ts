@@ -6,6 +6,8 @@ import type { OfferRedirectTarget } from "@/features/offers/types";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 import type { Database } from "@/shared/types/database";
 
+import { recordDiscoveryEvent } from "./discovery-events";
+
 type ClickType = Database["public"]["Enums"]["click_type"];
 
 function hashIp(ip: string | null) {
@@ -47,6 +49,11 @@ export async function recordAffiliateClick(offer: OfferRedirectTarget) {
     offerId: offer.id,
     storeId: offer.store_id,
     clickType: "website",
+  });
+  await recordDiscoveryEvent({
+    eventType: "affiliate_click",
+    entityType: "offer",
+    entityId: offer.id,
   });
 }
 

@@ -54,7 +54,7 @@ create table if not exists public.sponsored_content (
   cpc_sek numeric(10, 4),
   featured boolean default false,
   featured_until timestamptz,
-  disclosure_text text default "Sponsrat innehål",
+  disclosure_text text default 'Sponsrat innehåll',
   created_at timestamptz not null default now(),
   published_at timestamptz
 );

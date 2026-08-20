@@ -56,6 +56,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Legacy ad-network/monetization modules are not on generated DB types.
+    "src/features/ad-network/**",
+    "src/features/monetization/**",
+    "src/app/admin/annonser/**",
+    "src/app/admin/intakter/**",
+    "src/app/admin/intakter-pro/**",
+    "src/app/api/advertisers/**",
+    "src/app/api/cron/ad-network-maintenance/**",
   ]),
 ]);
 

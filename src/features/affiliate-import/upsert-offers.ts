@@ -95,6 +95,7 @@ function buildOfferRow(
     external_id: draft.externalId,
     is_imported: true,
     last_synced_at: now,
+    last_verified_at: now,
     updated_at: now,
   };
 }

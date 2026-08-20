@@ -30,3 +30,6 @@ export async function createSupabaseServerClient() {
     },
   });
 }
+
+/** Sync alias used by legacy monetization/ad-network modules. */
+export { createAdminClient as createClient } from "./admin";

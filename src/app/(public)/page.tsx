@@ -12,12 +12,23 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CategoryStrip } from "@/features/categories/components/category-strip";
+import { findActiveCategories } from "@/features/categories/queries";
+import { ArticleCard } from "@/features/editorial/components/article-card";
+import { findPublishedArticles } from "@/features/editorial/queries";
 import { FeaturedOfferCard } from "@/features/offers/components/featured-offer-card";
 import { OfferList } from "@/features/offers/components/offer-list";
 import { compareByDiscount } from "@/features/offers/format";
 import { findActiveOffers } from "@/features/offers/queries";
-import { CategoryStrip } from "@/features/categories/components/category-strip";
-import { findActiveCategories } from "@/features/categories/queries";
+import { sortOffers, withClickCounts } from "@/features/offers/sort";
+import { SiteSearchForm } from "@/features/search/components/site-search-form";
+import { StoreGrid } from "@/features/stores/components/store-grid";
+import { findActiveStores } from "@/features/stores/queries";
+import {
+  countOfferClicksSince,
+  countStoreClicksSince,
+  daysAgo,
+} from "@/features/tracking/discovery-events";
 import { siteConfig } from "@/shared/config/site";
 import {
   createAbsoluteUrl,
@@ -54,9 +65,9 @@ const faqItems = [
       "Ja. Vi visar bara aktiva erbjudanden och tar bort kampanjer som gått ut. Varje erbjudande visar dessutom hur länge det gäller.",
   },
   {
-    question: "Hur ofta kommer det nya erbjudanden?",
+    question: "Vad är Deal Score?",
     answer:
-      "Nya rabatter och kampanjer läggs till löpande. Vill du inte missa något kan du bevaka deals så mailar vi ett kort urval när något riktigt bra dyker upp.",
+      "Deal Score är braerbjudandens egen ranking utifrån rabatt, aktualitet och verifiering. Sponsrade erbjudanden får ingen extra poäng. Det är inte ett historiskt prisbevis.",
   },
 ];
 
@@ -72,22 +83,45 @@ const trustItems = [
 ];
 
 export default async function HomePage() {
-  const [offers, categories] = await Promise.all([
-    findActiveOffers(),
-    findActiveCategories(),
-  ]);
+  const weekAgo = daysAgo(7);
+  const [offers, categories, stores, bestInTest, guides, offerClicks, storeClicks] =
+    await Promise.all([
+      findActiveOffers(),
+      findActiveCategories(),
+      findActiveStores(),
+      findPublishedArticles({ type: "best_in_test", limit: 3 }),
+      findPublishedArticles({ type: "guide", limit: 3 }),
+      countOfferClicksSince(weekAgo),
+      countStoreClicksSince(weekAgo),
+    ]);
   const offerCount = offers.length;
   const featuredOffer = offers.length
     ? [...offers].sort(compareByDiscount)[0]
     : undefined;
+  const hottest = withClickCounts(
+    sortOffers(
+      offers.filter((offer) => offer.id !== featuredOffer?.id),
+      "score",
+      offerClicks,
+    ),
+    offerClicks,
+  ).slice(0, 4);
   const partnerOffers = offers.filter((offer) => offer.is_featured);
-  const otherOffers = offers.filter(
-    (offer) => !offer.is_featured && offer.id !== featuredOffer?.id,
-  );
+  const otherOffers = offers
+    .filter(
+      (offer) =>
+        !offer.is_featured &&
+        offer.id !== featuredOffer?.id &&
+        !hottest.some((item) => item.id === offer.id),
+    )
+    .slice(0, 8);
   const storeCount = new Set(
     offers.map((offer) => offer.store?.id).filter(Boolean),
   ).size;
   const codeCount = offers.filter((offer) => offer.discount_code).length;
+  const popularStores = [...stores]
+    .sort((a, b) => (storeClicks.get(b.id) ?? 0) - (storeClicks.get(a.id) ?? 0))
+    .slice(0, 4);
 
   const heroStats = [
     { icon: Tag, value: offerCount, label: "aktiva erbjudanden" },
@@ -118,7 +152,7 @@ export default async function HomePage() {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Aktuella erbjudanden",
-    itemListElement: offers.map((offer, index) => ({
+    itemListElement: offers.slice(0, 20).map((offer, index) => ({
       "@type": "ListItem",
       position: index + 1,
       name: offer.title,
@@ -150,7 +184,7 @@ export default async function HomePage() {
               <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Sparkles className="size-2.5" />
               </span>
-              Smarta deals utan stök
+              Sveriges enklaste plats för ett bra köp
             </Badge>
             <div className="space-y-4">
               <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">
@@ -166,6 +200,8 @@ export default async function HomePage() {
                 erbjudanden som faktiskt är värda att klicka på.
               </p>
             </div>
+
+            <SiteSearchForm size="lg" />
 
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild size="lg" className="h-11">
@@ -242,34 +278,122 @@ export default async function HomePage() {
 
       <CategoryStrip categories={categoriesWithCounts} />
 
+      {hottest.length > 0 ? (
+        <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-primary">Hetast just nu</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                Högst Deal Score
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Braerbjudandens ranking – sponsring höjer inte poängen.
+              </p>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/erbjudanden?sortering=score">Alla deals</Link>
+            </Button>
+          </div>
+          <OfferList offers={hottest} headingLevel="h3" />
+        </section>
+      ) : null}
+
       <section
         id="erbjudanden"
         className="scroll-mt-header mx-auto w-full max-w-6xl px-4 py-12 sm:px-6"
       >
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-primary">I samarbete</p>
+            <p className="text-sm font-medium text-primary">Redaktionens val</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Unika erbjudanden i samarbete med braerbjudanden.se
+              Utvalda erbjudanden just nu
             </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Handplockade av redaktionen. Betalda placeringar märks separat som
+              sponsrade.
+            </p>
           </div>
           <AffiliateDisclosure />
         </div>
 
-        <OfferList offers={partnerOffers} />
+        <OfferList offers={partnerOffers} headingLevel="h3" />
 
         {otherOffers.length > 0 ? (
           <div className="mt-12">
-            <div className="mb-6">
-              <p className="text-sm font-medium text-primary">Fler deals</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-                Andra erbjudanden
-              </h2>
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-primary">Fler deals</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                  Andra erbjudanden
+                </h2>
+              </div>
+              <Button variant="ghost" asChild>
+                <Link href="/erbjudanden">Visa alla</Link>
+              </Button>
             </div>
-            <OfferList offers={otherOffers} />
+            <OfferList offers={otherOffers} headingLevel="h3" />
           </div>
         ) : null}
       </section>
+
+      {bestInTest.length > 0 ? (
+        <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-primary">Bäst i test</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                Senaste köpguiderna
+              </h2>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/bast-i-test">Alla guider</Link>
+            </Button>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-3">
+            {bestInTest.map((article) => (
+              <ArticleCard key={article.id} article={article} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {popularStores.length > 0 ? (
+        <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-primary">Butiker</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                Populära butiker
+              </h2>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/butiker">Alla butiker</Link>
+            </Button>
+          </div>
+          <StoreGrid stores={popularStores} />
+        </section>
+      ) : null}
+
+      {guides.length > 0 ? (
+        <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-primary">Guider</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                Shoppingtips
+              </h2>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/guider">Alla guider</Link>
+            </Button>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-3">
+            {guides.map((article) => (
+              <ArticleCard key={article.id} article={article} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <FaqSection
         title="Vanliga frågor om erbjudanden och rabattkoder"
@@ -288,6 +412,14 @@ export default async function HomePage() {
           description: siteConfig.description,
           inLanguage: "sv-SE",
           publisher: { "@id": createAbsoluteUrl("/#organization") },
+          potentialAction: {
+            "@type": "SearchAction",
+            target: {
+              "@type": "EntryPoint",
+              urlTemplate: `${createAbsoluteUrl("/sok")}?q={search_term_string}`,
+            },
+            "query-input": "required name=search_term_string",
+          },
         })}
       />
       <script

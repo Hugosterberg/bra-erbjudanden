@@ -72,6 +72,11 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
       status: offer?.status ?? "draft",
       rank_position: offer?.rank_position ?? 100,
       is_featured: offer?.is_featured ?? false,
+      is_sponsored: offer?.is_sponsored ?? false,
+      is_exclusive: offer?.is_exclusive ?? false,
+      mark_verified: false,
+      original_price: offer?.original_price ?? "",
+      current_price: offer?.current_price ?? "",
     },
   });
 
@@ -264,6 +269,17 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
         </div>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor="original_price">Ordinarie pris (valfritt)</Label>
+          <Input id="original_price" type="number" step="0.01" {...form.register("original_price")} />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="current_price">Kampanjpris (valfritt)</Label>
+          <Input id="current_price" type="number" step="0.01" {...form.register("current_price")} />
+        </div>
+      </div>
+
       {redemptionType === "discount_code" ? (
         <div className="grid gap-2">
           <Label htmlFor="discount_code">Rabattkod</Label>
@@ -403,6 +419,18 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
         <label className="flex items-end gap-2 pb-3 text-sm font-medium">
           <input type="checkbox" className="size-4" {...form.register("is_featured")} />
           Utvalt erbjudande
+        </label>
+        <label className="flex items-end gap-2 pb-3 text-sm font-medium">
+          <input type="checkbox" className="size-4" {...form.register("is_sponsored")} />
+          Sponsrat
+        </label>
+        <label className="flex items-end gap-2 pb-3 text-sm font-medium">
+          <input type="checkbox" className="size-4" {...form.register("is_exclusive")} />
+          Exklusivt erbjudande
+        </label>
+        <label className="flex items-end gap-2 pb-3 text-sm font-medium">
+          <input type="checkbox" className="size-4" {...form.register("mark_verified")} />
+          Markera som verifierad nu
         </label>
       </div>
 

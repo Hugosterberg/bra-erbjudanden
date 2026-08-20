@@ -1,9 +1,12 @@
+import { cache } from "react";
+
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import type { Category } from "./types";
 
-export async function findActiveCategories(): Promise<Category[]> {
+// Cached per request so generateMetadata and the page body share one query.
+export const findActiveCategories = cache(async (): Promise<Category[]> => {
   const supabase = getSupabasePublicClient();
 
   if (!supabase) {
@@ -17,9 +20,9 @@ export async function findActiveCategories(): Promise<Category[]> {
     .order("name", { ascending: true });
 
   return (data ?? []) as Category[];
-}
+});
 
-export async function findActiveCategoryBySlug(slug: string): Promise<Category | null> {
+export const findActiveCategoryBySlug = cache(async (slug: string): Promise<Category | null> => {
   const supabase = getSupabasePublicClient();
 
   if (!supabase) {
@@ -31,10 +34,10 @@ export async function findActiveCategoryBySlug(slug: string): Promise<Category |
     .select("*")
     .eq("slug", slug)
     .eq("status", "active")
-    .single();
+    .maybeSingle();
 
   return (data as Category | null) ?? null;
-}
+});
 
 export async function findAdminCategories(): Promise<Category[]> {
   const supabase = getSupabaseAdminClient();

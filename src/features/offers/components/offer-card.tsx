@@ -1,44 +1,44 @@
 import Link from "next/link";
-import { ArrowUpRight, Sparkles, Timer } from "lucide-react";
+import { ArrowUpRight, Timer } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { scoreOffer } from "@/features/deal-score/from-offer";
+import { StoreLogo } from "@/shared/ui/store-logo";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
 import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
+import { OfferStatusBadges } from "./offer-status-badges";
 import { OfferTerms } from "./offer-terms";
-import { StoreLogo } from "@/shared/ui/store-logo";
 import {
   formatDiscount,
   formatOfferCtaLabel,
   formatOfferValidity,
-  formatRedemptionType,
 } from "../format";
-import type { OfferWithRelations } from "../types";
+import type { OfferHeadingLevel, OfferWithRelations } from "../types";
 
-export function OfferCard({ offer }: { offer: OfferWithRelations }) {
+export function OfferCard({
+  offer,
+  headingLevel = "h2",
+}: {
+  offer: OfferWithRelations;
+  headingLevel?: OfferHeadingLevel;
+}) {
+  const score = scoreOffer(offer).score;
+  const Heading = headingLevel;
+
   return (
     <Card className="group relative h-full gap-4 overflow-hidden rounded-2xl shadow-none ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-soft hover:ring-primary/20">
       <span aria-hidden className="deal-shine z-10" />
       <CardHeader className="gap-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {offer.is_featured ? (
-                <Badge className="gap-1">
-                  <Sparkles className="size-3" />
-                  Utvald
-                </Badge>
-              ) : null}
-              <Badge variant="outline">{formatRedemptionType(offer.redemption_type)}</Badge>
-              {offer.category ? <Badge variant="secondary">{offer.category.name}</Badge> : null}
-            </div>
+            <OfferStatusBadges offer={offer} score={score} />
             <Link href={`/erbjudanden/${offer.slug}`} className="block">
-              <h2 className="text-lg font-semibold leading-6 tracking-tight transition-colors group-hover:text-primary">
+              <Heading className="text-lg font-semibold leading-6 tracking-tight transition-colors group-hover:text-primary">
                 {offer.title}
-              </h2>
+              </Heading>
             </Link>
           </div>
           <OfferMedia

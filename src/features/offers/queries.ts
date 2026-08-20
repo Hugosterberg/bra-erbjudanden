@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { findActiveCategoryBySlug } from "@/features/categories/queries";
 import { findActiveStoreBySlug } from "@/features/stores/queries";
 import type { AffiliateNetwork } from "@/features/affiliate-import/types";
@@ -24,12 +26,51 @@ function applyActiveDateWindow<T extends { or: (filters: string) => T }>(query: 
     .or(`ends_at.is.null,ends_at.gte.${now}`);
 }
 
-export async function findActiveOffers(options: {
+export const findPublishedOfferBySlug = cache(async (slug: string) => {
+  const supabase = getSupabasePublicClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("offers")
+    .select(offerRelationsSelect)
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  return (data as OfferWithRelations | null) ?? null;
+});
+
+export type ActiveOfferFilters = {
   limit?: number;
   storeSlug?: string;
   categorySlug?: string;
+  storeId?: string;
+  categoryId?: string;
   redemptionType?: "discount_code" | "direct_link";
-} = {}) {
+};
+
+/**
+ * React's cache() keys on argument identity, so the filters are collapsed into
+ * a stable string. Without this, generateMetadata and the page body would each
+ * run the same offer query.
+ */
+export function findActiveOffers(options: ActiveOfferFilters = {}) {
+  const key = JSON.stringify(
+    Object.fromEntries(
+      Object.entries(options)
+        .filter(([, value]) => value !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b)),
+    ),
+  );
+
+  return findActiveOffersByKey(key);
+}
+
+const findActiveOffersByKey = cache(async (key: string) => {
+  const options = JSON.parse(key) as ActiveOfferFilters;
   const supabase = getSupabasePublicClient();
 
   if (!supabase) {
@@ -55,12 +96,14 @@ export async function findActiveOffers(options: {
     .order("rank_position", { ascending: true })
     .order("updated_at", { ascending: false });
 
-  if (store) {
-    query = query.eq("store_id", store.id);
+  const storeId = store?.id ?? options.storeId;
+  if (storeId) {
+    query = query.eq("store_id", storeId);
   }
 
-  if (category) {
-    query = query.eq("category_id", category.id);
+  const categoryId = category?.id ?? options.categoryId;
+  if (categoryId) {
+    query = query.eq("category_id", categoryId);
   }
 
   if (options.redemptionType) {
@@ -74,7 +117,7 @@ export async function findActiveOffers(options: {
   const { data } = await query;
 
   return mapOfferRelations(data);
-}
+});
 
 export async function findActiveOfferBySlug(slug: string) {
   const supabase = getSupabasePublicClient();
@@ -145,16 +188,14 @@ export async function findAdminOffers(options: {
 
   const { data: offers } = await query;
 
-  const { data: clickEvents } = await supabase
-    .from("click_events")
-    .select("offer_id, click_type");
+  const { data: clickTotals } = await supabase.rpc("count_offer_clicks_by_type");
 
   const websiteCounts = new Map<string, number>();
   const codeCounts = new Map<string, number>();
 
-  for (const event of clickEvents ?? []) {
-    const target = event.click_type === "discount_code" ? codeCounts : websiteCounts;
-    target.set(event.offer_id, (target.get(event.offer_id) ?? 0) + 1);
+  for (const row of clickTotals ?? []) {
+    const target = row.click_type === "discount_code" ? codeCounts : websiteCounts;
+    target.set(row.offer_id, Number(row.click_count));
   }
 
   return mapOfferRelations(offers).map((offer) => {
