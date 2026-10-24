@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { AffiliateNetwork } from "@/features/affiliate-import/types";
 
 export type RevenueEventType = "impression" | "click" | "conversion";

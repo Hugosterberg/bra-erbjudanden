@@ -156,3 +156,31 @@ De får aldrig publiceras som statistik på sajten (se `/partner`).
 - Typfiltret på `/rabattkoder` byggde URL:er som sidan ignorerade och är borttaget.
 - Butikens `affiliate_url` var konfigurerbar men oanvänd; den går nu via
   `/go/butik/[slug]` med spårning.
+
+## 2026-10-24 – Monetization CI
+
+- `@ts-nocheck` och ESLint-ignore på ad-network/monetization dolde både saknade
+  moduler och riktiga typfel. Direktiven är borttagna. Tabellerna från
+  monetization-migrationerna finns ännu inte i genererade Supabase-typer, så de
+  är tillfälligt `UntypedTable` (`any`) i `database.ts` tills `supabase gen types`
+  inkluderar dem.
+- `src/features/monetization/index.ts` pekade på filer som bara finns i
+  ad-network. Exporterna går nu till de riktiga modulerna.
+- Header bidding anropade budfunktionen med ett tredje argument som funktionen
+  inte tar emot. Argumentet används inte och är borttaget.
+- `fetch` har inget `timeout`-fält. Webhook-anrop avbryts med `AbortSignal.timeout`.
+- `nullsLast` finns inte i den installerade Supabase-klienten. Sorteringen
+  använder `nullsFirst: false`.
+- Affiliate-attribution läste `conversion_value` från `click_events`, en kolumn
+  som inte finns. Konverteringar hämtas från `affiliate_revenue_events`.
+- Utgivarens intäktsvy ritades med `recharts`, som inte är ett beroende och
+  inte var inkopplad. Vyn visar samma siffror i en tabell.
+- CI anropade `npm run typecheck` (saknades) och `tsc` med kataloger, vilket
+  TypeScript inte accepterar. `typecheck` är `tsc --noEmit` för hela projektet,
+  inklusive de här modulerna.
+- Enhetstesterna körs med Node:s test runner och importerar TypeScript direkt.
+  Workflowen skickade Jest-flaggor (`--testPathPattern`, `--coverage`) som Node
+  tolkade som filnamn. `npm test` förstår flaggorna och kör
+  monetization/ad-network-testerna mot den riktiga källkoden. Inga befintliga
+  tester är borttagna. Node 20 kan inte läsa `.ts`-testimporter, så workflowen
+  använder Node 22, samma körning som testskriptet är skrivet för.

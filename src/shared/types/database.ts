@@ -6,6 +6,21 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+/**
+ * Monetization and ad-network tables are not in the generated discovery schema.
+ * `any` is intentional until `supabase gen types` includes those migrations:
+ * an index signature is not assignable to the row interfaces these modules return.
+ */
+type UntypedTable = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Row: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Insert: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Update: any;
+  Relationships: [];
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -455,6 +470,34 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["discovery_events"]["Insert"]>;
         Relationships: [];
       };
+      ad_campaigns: UntypedTable;
+      ad_metrics_daily: UntypedTable;
+      ad_clicks: UntypedTable;
+      campaign_alerts: UntypedTable;
+      affiliate_revenue_events: UntypedTable;
+      advertiser_webhooks: UntypedTable;
+      ad_placements: UntypedTable;
+      ad_conversions: UntypedTable;
+      ad_creative_tests: UntypedTable;
+      webhook_delivery_log: UntypedTable;
+      sponsorships: UntypedTable;
+      rtb_auctions: UntypedTable;
+      affiliate_link_placements: UntypedTable;
+      advertiser_accounts: UntypedTable;
+      ad_impressions: UntypedTable;
+      ad_creatives: UntypedTable;
+      revenue_report_daily: UntypedTable;
+      click_fraud_detection: UntypedTable;
+      placement_floor_prices: UntypedTable;
+      affiliate_disclosure_settings: UntypedTable;
+      sponsorship_events: UntypedTable;
+      revenue_floor_rules: UntypedTable;
+      publisher_revenue_daily: UntypedTable;
+      header_bidding_config: UntypedTable;
+      campaign_budget_pacing: UntypedTable;
+      bid_suggestions: UntypedTable;
+      affiliate_revenue_daily: UntypedTable;
+      ad_targeting_rules: UntypedTable;
     };
     Views: Record<string, never>;
     Functions: {

@@ -1,6 +1,8 @@
-// @ts-nocheck
 import crypto from "crypto";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
+import { createWebhookSignature } from "./webhook-signature";
+
+export { verifyWebhookSignature } from "./webhook-signature";
 
 export type WebhookEventType =
   | "campaign.created"
@@ -99,6 +101,7 @@ interface Webhook {
   id: string;
   webhook_url: string;
   signing_secret: string;
+  failure_count?: number;
 }
 
 async function deliverWebhook(
@@ -106,7 +109,7 @@ async function deliverWebhook(
   payload: WebhookPayload,
   client: ReturnType<typeof createAdminClient>,
 ): Promise<{ success: boolean }> {
-  const signature = createWebhookSignature(payload, webhook.signing_secret);
+  const signature = createWebhookSignature(JSON.stringify(payload), webhook.signing_secret);
 
   try {
     const response = await fetch(webhook.webhook_url, {
@@ -117,7 +120,7 @@ async function deliverWebhook(
         "X-Webhook-ID": webhook.id,
       },
       body: JSON.stringify(payload),
-      timeout: 10000,
+      signal: AbortSignal.timeout(10_000),
     });
 
     const success = response.ok;
@@ -174,19 +177,6 @@ async function deliverWebhook(
 
     return { success: false };
   }
-}
-
-function createWebhookSignature(payload: WebhookPayload, signingSecret: string): string {
-  const message = JSON.stringify(payload);
-  return crypto.createHmac("sha256", signingSecret).update(message).digest("hex");
-}
-
-/**
- * Verify webhook signature (for advertiser to verify webhook is from us)
- */
-export function verifyWebhookSignature(payload: string, signature: string, signingSecret: string): boolean {
-  const expectedSignature = crypto.createHmac("sha256", signingSecret).update(payload).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
 /**

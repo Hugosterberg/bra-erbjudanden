@@ -1,15 +1,10 @@
-// @ts-nocheck
 "use server";
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
+import { assessClickFraud, type FraudAssessment } from "./fraud-signals";
 import type { AdClick } from "./types";
 
-export interface FraudAnalysis {
-  riskScore: number; // 0-10
-  isFraudulent: boolean;
-  flags: string[];
-  notes: string;
-}
+export type FraudAnalysis = FraudAssessment;
 
 /**
  * Analyze a click for fraud patterns
@@ -21,72 +16,20 @@ export async function analyzeClickForFraud(click: AdClick, context?: {
   pageUrl?: string;
   referrer?: string;
 }): Promise<FraudAnalysis> {
-  const flags: string[] = [];
-  let riskScore = 0;
-
-  // 1. Check for rapid-fire clicks from same IP
-  if (context?.ipHash) {
-    const recentClicksFromIp = await getRecentClicksFromIp(context.ipHash, click.campaign_id);
-    if (recentClicksFromIp > 5) {
-      flags.push("rapid_clicks_same_ip");
-      riskScore += 3;
-    }
-  }
-
-  // 2. Check for invalid user agents
-  if (context?.userAgent) {
-    if (isBot(context.userAgent)) {
-      flags.push("bot_user_agent");
-      riskScore += 4;
-    }
-    if (isSuspiciousUserAgent(context.userAgent)) {
-      flags.push("suspicious_user_agent");
-      riskScore += 2;
-    }
-  }
-
-  // 3. Check for VPN/Proxy
-  if (context?.ipHash && isVpnIp(context.ipHash)) {
-    flags.push("vpn_detected");
-    riskScore += 1; // VPN not always fraud, just higher scrutiny
-  }
-
-  // 4. Check for unusual click patterns
+  const recentClicksFromIp = context?.ipHash
+    ? await getRecentClicksFromIp(context.ipHash, click.campaign_id)
+    : 0;
   const unusualPattern = await detectUnusualPattern(click.campaign_id, context?.pageUrl);
-  if (unusualPattern) {
-    flags.push("unusual_click_pattern");
-    riskScore += 2;
-  }
-
-  // 5. Check for invalid referrer
-  if (context?.referrer && isInvalidReferrer(context.referrer)) {
-    flags.push("invalid_referrer");
-    riskScore += 1.5;
-  }
-
-  // 6. Check for repeated clicks from same session
   const recentClicksInSession = await getRecentClicksInSession(click.session_id || "", click.campaign_id);
-  if (recentClicksInSession > 2) {
-    flags.push("multiple_clicks_same_session");
-    riskScore += 2;
-  }
 
-  // 7. Check for click time anomalies
-  if (isUnusualClickTime()) {
-    flags.push("unusual_click_time");
-    riskScore += 0.5;
-  }
-
-  const isFraudulent = riskScore >= 5;
-
-  const notes = flags.length > 0 ? flags.join(", ") : "No suspicious indicators detected";
-
-  return {
-    riskScore: Math.min(10, riskScore),
-    isFraudulent,
-    flags,
-    notes,
-  };
+  return assessClickFraud({
+    recentClicksFromIp,
+    userAgent: context?.userAgent,
+    ipHash: context?.ipHash,
+    referrer: context?.referrer,
+    unusualPattern,
+    recentClicksInSession,
+  });
 }
 
 /**
@@ -148,49 +91,6 @@ export async function getCampaignFraudRate(campaignId: string): Promise<number> 
   const totalCount = data?.length || 1;
 
   return (fraudulentCount / totalCount) * 100;
-}
-
-// === Helper Functions ===
-
-function isBot(userAgent: string): boolean {
-  const botPatterns = [
-    /googlebot/i,
-    /bingbot/i,
-    /slurp/i,
-    /duckduckbot/i,
-    /baiduspider/i,
-    /yandexbot/i,
-    /ahrefsbot/i,
-    /semrushbot/i,
-  ];
-
-  return botPatterns.some((pattern) => pattern.test(userAgent));
-}
-
-function isSuspiciousUserAgent(userAgent: string): boolean {
-  return userAgent.length < 10 || userAgent === "unknown" || /headless|curl|wget|python/i.test(userAgent);
-}
-
-function isVpnIp(ipHash: string): boolean {
-  // In production, use a VPN detection API
-  // For now, just check for known VPN/proxy IP patterns
-  return ipHash.startsWith("vpn_") || ipHash.startsWith("proxy_");
-}
-
-function isInvalidReferrer(referrer: string): boolean {
-  try {
-    const url = new URL(referrer);
-    // Check for obviously fake referrers
-    return !url.hostname || url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  } catch {
-    return true; // Invalid URL format
-  }
-}
-
-function isUnusualClickTime(): boolean {
-  const hour = new Date().getHours();
-  // Flag clicks at very unusual hours (2-4 AM)
-  return hour >= 2 && hour <= 4;
 }
 
 async function getRecentClicksFromIp(ipHash: string, campaignId: string): Promise<number> {

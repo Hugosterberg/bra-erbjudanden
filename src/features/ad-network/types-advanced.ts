@@ -1,4 +1,3 @@
-// @ts-nocheck
 export interface AuctionContext {
   placementId: string;
   sessionId: string;

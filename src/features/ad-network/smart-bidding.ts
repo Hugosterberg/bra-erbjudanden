@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
@@ -43,7 +42,8 @@ export async function generateBidSuggestion(campaign: AdCampaign): Promise<BidSu
     .select("base_cpm_sek, min_bid_sek")
     .eq("active", true);
 
-  const avgFloorCPM = placements?.reduce((sum, p) => sum + (p.base_cpm_sek || 0), 0) / (placements?.length || 1) || 0.30;
+  const floorTotal = placements?.reduce((sum, p) => sum + (p.base_cpm_sek || 0), 0) ?? 0;
+  const avgFloorCPM = floorTotal / (placements?.length || 1) || 0.3;
 
   // Smart bidding algorithm
   let suggestedBid = campaign.bid_amount;
