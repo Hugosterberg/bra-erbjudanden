@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Link as LinkIcon } from "lucide-react";
 
 interface AffiliateLinkLabelProps {

@@ -6,13 +6,36 @@ on:
     paths:
       - 'src/features/monetization/**'
       - 'src/features/ad-network/**'
+      - 'src/shared/types/database.ts'
+      - 'src/app/admin/annonser/**'
+      - 'src/app/admin/intakter/**'
+      - 'src/app/admin/intakter-pro/**'
+      - 'src/app/api/advertisers/**'
+      - 'src/app/api/cron/ad-network-maintenance/**'
       - 'supabase/migrations/*monetization*'
       - 'supabase/migrations/*ad*'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'eslint.config.mjs'
+      - '.github/workflows/monetization.yml'
   pull_request:
     branches: [main]
     paths:
       - 'src/features/monetization/**'
       - 'src/features/ad-network/**'
+      - 'src/shared/types/database.ts'
+      - 'src/app/admin/annonser/**'
+      - 'src/app/admin/intakter/**'
+      - 'src/app/admin/intakter-pro/**'
+      - 'src/app/api/advertisers/**'
+      - 'src/app/api/cron/ad-network-maintenance/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'eslint.config.mjs'
+      - 'scripts/test-monetization.mjs'
+      - 'scripts/test-ad-network.mjs'
+      - 'scripts/run-tests.mjs'
+      - '.github/workflows/monetization.yml'
 
 jobs:
   typecheck:
@@ -22,11 +45,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm run typecheck
-      - run: npx tsc --noEmit src/features/monetization src/features/ad-network
 
   lint:
     runs-on: ubuntu-latest
@@ -35,7 +57,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm run lint -- src/features/monetization src/features/ad-network
@@ -47,7 +69,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm test -- --testPathPattern='(monetization|ad-network)' --coverage
@@ -64,7 +86,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm audit --audit-level=moderate
@@ -76,7 +98,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm run build

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/shared/lib/supabase/admin";

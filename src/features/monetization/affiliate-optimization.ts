@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
@@ -49,7 +48,9 @@ export async function getOptimalAffiliatePlacement(context: PlacementContext): P
 
   // A/B test: 80% show best placement, 20% test new one
   const shouldTest = Math.random() < 0.2;
-  const placement = shouldTest ? getRandomPlacement() : bestPlacement.placement_location;
+  const placement: PlacementLocation = shouldTest
+    ? getRandomPlacement()
+    : bestPlacement.placement_location;
 
   // Get offer details
   const { data: offer } = await client.from("offers").select("discount_value").eq("id", context.offerId).single();
@@ -57,7 +58,7 @@ export async function getOptimalAffiliatePlacement(context: PlacementContext): P
   const callToAction = generateCTA(offer, placement);
 
   return {
-    placement: placement as string,
+    placement,
     format: getFormatForPlacement(placement),
     expectedCTR: avgCTR,
     expectedConversion: avgConversion,
@@ -137,9 +138,12 @@ function generateCTA(offer: Record<string, unknown> | null, placement: string): 
   return ctas[placement] || "Besök";
 }
 
-function getRandomPlacement(): string {
-  const placements = ["article_inline", "article_end", "sidebar", "hero", "footer"];
-  return placements[Math.floor(Math.random() * placements.length)];
+type PlacementLocation = "article_inline" | "article_end" | "sidebar" | "hero" | "footer" | "modal";
+
+function getRandomPlacement(): PlacementLocation {
+  const placements: PlacementLocation[] = ["article_inline", "article_end", "sidebar", "hero", "footer"];
+  const index = Math.floor(Math.random() * placements.length);
+  return placements[index] ?? "article_end";
 }
 
 /**

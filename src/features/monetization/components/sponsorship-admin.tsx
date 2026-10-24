@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Sponsorship } from "../types";
 
 // date-fns is not a dependency of this project; Intl covers the same need.

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
@@ -89,7 +88,12 @@ export async function checkCampaignHealth(campaign: AdCampaign): Promise<void> {
   const recentSpend = todayMetrics.spend_sek;
 
   if (recentSpend > 0 && recentConversionValue < recentSpend * 0.5) {
-    await createAlert(campaign.id, "underperforming", "warning", `ROI is below 50%. Consider pausing or optimizing campaign.`, null);
+    await createAlert(
+      campaign.id,
+      "underperforming",
+      "warning",
+      "ROI is below 50%. Consider pausing or optimizing campaign.",
+    );
   }
 }
 

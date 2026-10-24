@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Ad Network Module — Professional Programmatic Advertising
  *
@@ -151,7 +150,7 @@ export {
   getRevenueFloor,
   meetsFloor,
   estimateHeaderBiddingLift,
-} from "./header-bidding";
+} from "@/features/monetization/header-bidding";
 
 // ===== COMPONENTS =====
 export { AdBanner } from "./components/ad-banner";

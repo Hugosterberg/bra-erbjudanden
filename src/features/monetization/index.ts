@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Monetization Module — Complete Revenue System
  *
@@ -42,7 +41,7 @@ export type {
   OptimalPriceResult,
   AttributionResult,
   RevenueForecast,
-} from "./types-advanced";
+} from "@/features/ad-network/types-advanced";
 
 // ===== QUERIES =====
 export {
@@ -72,14 +71,14 @@ export {
   generateBidSuggestion,
   saveBidSuggestion,
   autoOptimizeBid,
-} from "./smart-bidding";
+} from "@/features/ad-network/smart-bidding";
 
 // ===== FRAUD DETECTION =====
 export {
   analyzeClickForFraud,
   recordFraudAnalysis,
   getCampaignFraudRate,
-} from "./fraud-detection";
+} from "@/features/ad-network/fraud-detection";
 
 // ===== WEBHOOKS =====
 export {
@@ -88,9 +87,9 @@ export {
   getWebhookStatus,
   retryFailedWebhooks,
   verifyWebhookSignature,
-} from "./webhooks";
+} from "@/features/ad-network/webhooks";
 
-export type { WebhookEventType, WebhookPayload } from "./webhooks";
+export type { WebhookEventType, WebhookPayload } from "@/features/ad-network/webhooks";
 
 // ===== CONVERSION TRACKING =====
 export {
@@ -100,7 +99,7 @@ export {
   getCampaignConversionValue,
   getCampaignROI,
   getConversionBreakdown,
-} from "./conversion-tracking";
+} from "@/features/ad-network/conversion-tracking";
 
 // ===== A/B TESTING =====
 export {
@@ -109,7 +108,7 @@ export {
   concludeTest,
   getOptimalTestSplit,
   getCampaignTests,
-} from "./ab-testing";
+} from "@/features/ad-network/ab-testing";
 
 // ===== CAMPAIGN ALERTS =====
 export {
@@ -117,16 +116,16 @@ export {
   getCampaignAlerts,
   shouldPauseCampaign,
   autoPauseBadCampaigns,
-} from "./campaign-alerts";
+} from "@/features/ad-network/campaign-alerts";
 
-export type { AlertType, AlertSeverity } from "./campaign-alerts";
+export type { AlertType, AlertSeverity } from "@/features/ad-network/campaign-alerts";
 
 // ===== REAL-TIME BIDDING =====
 export {
   runRTBAuction,
   calculateDynamicFloor,
   updateDemandIndex,
-} from "./rtb-auction";
+} from "@/features/ad-network/rtb-auction";
 
 // ===== REVENUE OPTIMIZATION =====
 export {
@@ -135,7 +134,7 @@ export {
   recommendPriceAdjustment,
   attributeConversions,
   forecastPublisherRevenue,
-} from "./revenue-optimization";
+} from "@/features/ad-network/revenue-optimization";
 
 // ===== HEADER BIDDING =====
 export {

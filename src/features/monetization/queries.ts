@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { createClient } from "@/shared/lib/supabase/server";
@@ -11,6 +10,7 @@ import type {
   RevenueMetrics,
   NetworkRevenueMetrics,
 } from "./types";
+import { revenueTrend, summarizeRevenueEvents } from "./revenue-metrics";
 
 export async function findRevenueEventsByDateRange(
   startDate: string,
@@ -64,7 +64,7 @@ export async function findActiveSponsorships(): Promise<Sponsorship[]> {
     .select("*")
     .eq("status", "active")
     .gt("ends_at", new Date().toISOString())
-    .order("reserved_position", { ascending: true, nullsLast: true });
+    .order("reserved_position", { ascending: true, nullsFirst: false });
 
   if (error) {
     console.error("Error fetching active sponsorships:", error);
@@ -135,25 +135,7 @@ export async function calculateRevenueMetrics(
     };
   }
 
-  const events = data || [];
-  const clicks = events.filter((e) => e.event_type === "click").length;
-  const impressions = events.filter((e) => e.event_type === "impression").length;
-  const conversions = events.filter((e) => e.event_type === "conversion").length;
-  const totalRevenue = events.reduce((sum, e) => sum + (e.revenue_usd || 0), 0);
-
-  const averageCpc = clicks > 0 ? totalRevenue / clicks : null;
-  const averageCpm = impressions > 0 ? (totalRevenue / impressions) * 1000 : null;
-  const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
-
-  return {
-    totalRevenue,
-    totalClicks: clicks,
-    totalImpressions: impressions,
-    totalConversions: conversions,
-    averageCpc,
-    averageCpm,
-    conversionRate,
-  };
+  return summarizeRevenueEvents(data || []);
 }
 
 export async function calculateNetworkRevenueMetrics(
@@ -186,36 +168,12 @@ export async function calculateNetworkRevenueMetrics(
   }
 
   const events = data || [];
-  const clicks = events.filter((e) => e.event_type === "click").length;
-  const impressions = events.filter((e) => e.event_type === "impression").length;
-  const conversions = events.filter((e) => e.event_type === "conversion").length;
-  const totalRevenue = events.reduce((sum, e) => sum + (e.revenue_usd || 0), 0);
-
-  const averageCpc = clicks > 0 ? totalRevenue / clicks : null;
-  const averageCpm = impressions > 0 ? (totalRevenue / impressions) * 1000 : null;
-  const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
-
-  // Simple trend: compare first half vs second half
-  const midpoint = Math.floor(events.length / 2);
-  const firstHalf = events.slice(0, midpoint);
-  const secondHalf = events.slice(midpoint);
-  const firstHalfRevenue = firstHalf.reduce((sum, e) => sum + (e.revenue_usd || 0), 0);
-  const secondHalfRevenue = secondHalf.reduce((sum, e) => sum + (e.revenue_usd || 0), 0);
-
-  let trend: "up" | "down" | "flat" = "flat";
-  if (secondHalfRevenue > firstHalfRevenue * 1.1) trend = "up";
-  else if (secondHalfRevenue < firstHalfRevenue * 0.9) trend = "down";
+  const summary = summarizeRevenueEvents(events);
 
   return {
     network,
-    totalRevenue,
-    totalClicks: clicks,
-    totalImpressions: impressions,
-    totalConversions: conversions,
-    averageCpc,
-    averageCpm,
-    conversionRate,
-    trend,
+    ...summary,
+    trend: revenueTrend(events),
   };
 }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
@@ -171,12 +170,13 @@ export async function attributeConversions(
 }> {
   const client = createAdminClient();
 
-  // Get affiliate conversions (from click tracking)
+  // Affiliate conversions live on revenue events. click_events has no conversion value.
   const { data: affiliateClicks } = await client
-    .from("click_events")
-    .select("*")
-    .gte("clicked_at", startDate)
-    .lte("clicked_at", endDate);
+    .from("affiliate_revenue_events")
+    .select("revenue_sek, revenue_usd")
+    .eq("event_type", "conversion")
+    .gte("recorded_at", startDate)
+    .lte("recorded_at", endDate);
 
   // Get ad conversions
   const { data: adConversions } = await client
@@ -185,7 +185,8 @@ export async function attributeConversions(
     .gte("recorded_at", startDate)
     .lte("recorded_at", endDate);
 
-  const affiliateConversionValue = affiliateClicks?.reduce((sum, c) => sum + (c.conversion_value || 0), 0) || 0;
+  const affiliateConversionValue =
+    affiliateClicks?.reduce((sum, event) => sum + (event.revenue_sek ?? event.revenue_usd ?? 0), 0) || 0;
   const adConversionValue = adConversions?.reduce((sum, c) => sum + (c.conversion_value || 0), 0) || 0;
   const totalValue = affiliateConversionValue + adConversionValue;
 

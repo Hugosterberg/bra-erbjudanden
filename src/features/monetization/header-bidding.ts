@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { createAdminClient } from "@/shared/lib/supabase/admin";
@@ -50,16 +49,12 @@ export async function runHeaderBidding(request: HeaderBidRequest): Promise<BidRe
 
     // 2. Run parallel bids to all networks
     const bidPromises = bidConfigs.map((config: Record<string, unknown>) =>
-      fetchBidFromNetwork(
-        config.ad_networks as Record<string, unknown>,
-        {
-          width: request.width,
-          height: request.height,
-          floorPrice: config.floor_price as number | undefined,
-          bidModifier: config.bid_modifier as number,
-        },
-        request.userContext,
-      ),
+      fetchBidFromNetwork(config.ad_networks as Record<string, unknown>, {
+        width: request.width,
+        height: request.height,
+        floorPrice: config.floor_price as number | undefined,
+        bidModifier: config.bid_modifier as number,
+      }),
     );
 
     const bids = await Promise.all(bidPromises);
@@ -96,6 +91,12 @@ export async function runHeaderBidding(request: HeaderBidRequest): Promise<BidRe
   }
 }
 
+function readNetwork(network: Record<string, unknown>): { id: string; name: string; key: string } {
+  const name = typeof network.name === "string" ? network.name : "";
+  const id = typeof network.id === "string" ? network.id : name;
+  return { id, name, key: name.toLowerCase().replace(" ", "_") };
+}
+
 async function fetchBidFromNetwork(
   network: Record<string, unknown>,
   adParams: {
@@ -105,45 +106,47 @@ async function fetchBidFromNetwork(
     bidModifier: number;
   },
 ): Promise<BidResponse | null> {
+  const { id, name, key } = readNetwork(network);
+
   try {
     // Simulate API call to ad network
     // In production, would call actual network APIs (Google AdSense, OpenX, Rubicon, AppNexus, etc)
 
     const networkBids: Record<string, () => Promise<BidResponse | null>> = {
       google_adsense: async () => ({
-        networkId: network.id,
+        networkId: id,
         networkName: "Google AdSense",
         bidAmount: 0.35 * (adParams.bidModifier || 1),
         ttl: 60000,
       }),
       openx: async () => ({
-        networkId: network.id,
+        networkId: id,
         networkName: "OpenX",
         bidAmount: 0.32 * (adParams.bidModifier || 1),
         ttl: 60000,
       }),
       rubicon: async () => ({
-        networkId: network.id,
+        networkId: id,
         networkName: "Rubicon Project",
         bidAmount: 0.38 * (adParams.bidModifier || 1),
         ttl: 60000,
       }),
       appnexus: async () => ({
-        networkId: network.id,
+        networkId: id,
         networkName: "AppNexus",
         bidAmount: 0.33 * (adParams.bidModifier || 1),
         ttl: 60000,
       }),
     };
 
-    const bidFn = networkBids[network.name.toLowerCase().replace(" ", "_")];
+    const bidFn = networkBids[key];
     if (bidFn) {
       return await bidFn();
     }
 
     return null;
   } catch (error) {
-    console.error(`Error fetching bid from ${network.name}:`, error);
+    console.error(`Error fetching bid from ${name}:`, error);
     return null;
   }
 }
@@ -175,13 +178,7 @@ export async function getRevenueFloor(placementId: string, country?: string): Pr
   };
 }
 
-/**
- * Check if bid meets floor price
- */
-export function meetsFloor(bidAmount: number, floor?: number): boolean {
-  if (!floor) return true;
-  return bidAmount >= floor;
-}
+export { meetsFloor } from "./bid-floor";
 
 /**
  * Estimate header bidding revenue increase
