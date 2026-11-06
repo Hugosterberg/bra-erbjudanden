@@ -15,11 +15,16 @@ export const offerSchema = z
     store_id: z.string().uuid("Välj butik"),
     category_id: z.string().uuid("Välj kategori").optional().or(z.literal("")),
     redemption_type: z.enum(["discount_code", "direct_link"]),
-    discount_type: z.enum(["percentage", "fixed_amount"]),
-    discount_value: z.coerce.number().positive("Rabatten måste vara större än 0"),
+    discount_type: z.enum(["percentage", "fixed_amount", "none"]),
+    discount_value: z.preprocess(
+      (value) => (value === "" || value === null || value === undefined ? undefined : value),
+      z.coerce.number().positive("Rabatten måste vara större än 0").optional(),
+    ),
+    is_up_to: z.coerce.boolean().default(false),
+    deal_label: z.string().trim().max(40, "Etiketten är för lång").optional(),
     discount_code: z.string().trim().optional(),
     affiliate_url: z.string().trim().url("Ange en giltig affiliatelänk"),
-    terms: z.string().trim().max(160, "Villkoret är för långt").optional(),
+    terms: z.string().trim().max(2000, "Villkoret är för långt").optional(),
     image_url: z
       .string()
       .trim()
@@ -47,6 +52,10 @@ export const offerSchema = z
       path: ["ends_at"],
     },
   )
+  .refine((value) => value.discount_type === "none" || value.discount_value !== undefined, {
+    message: "Ange rabatten, eller välj att erbjudandet saknar rabatt i siffror",
+    path: ["discount_value"],
+  })
   .refine(
     (value) => value.redemption_type === "direct_link" || Boolean(value.discount_code?.trim()),
     {
@@ -58,6 +67,8 @@ export const offerSchema = z
 export type OfferInput = z.infer<typeof offerSchema>;
 
 export function normalizeOfferInput(input: OfferInput) {
+  const hasDiscount = input.discount_type !== "none";
+
   return {
     title: input.title,
     slug: input.slug ? createSlug(input.slug) : createSlug(input.title),
@@ -65,8 +76,10 @@ export function normalizeOfferInput(input: OfferInput) {
     store_id: input.store_id,
     category_id: input.category_id || null,
     redemption_type: input.redemption_type,
-    discount_type: input.discount_type,
-    discount_value: input.discount_value,
+    discount_type: hasDiscount ? (input.discount_type as "percentage" | "fixed_amount") : null,
+    discount_value: hasDiscount ? (input.discount_value ?? null) : null,
+    is_up_to: hasDiscount ? input.is_up_to : false,
+    deal_label: hasDiscount ? null : input.deal_label?.trim() || null,
     discount_code: input.redemption_type === "discount_code" ? input.discount_code || null : null,
     affiliate_url: input.affiliate_url,
     terms: input.terms?.trim() || null,

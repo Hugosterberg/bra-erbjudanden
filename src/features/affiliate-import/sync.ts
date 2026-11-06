@@ -3,8 +3,12 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { getConfiguredAdapters } from "./adapters";
-import { getCronSkippedNetworks } from "./config";
-import { MIN_FEED_SIZE_FOR_ARCHIVE, NETWORK_SYNC_DELAY_MS } from "./constants";
+import { getCronSkippedNetworks, shouldAutoPublishImports } from "./config";
+import {
+  IMPORT_TIME_BUDGET_MS,
+  MIN_FEED_SIZE_FOR_ARCHIVE,
+  NETWORK_SYNC_DELAY_MS,
+} from "./constants";
 import {
   createImportBatch,
   deriveBatchImportStatus,
@@ -17,9 +21,8 @@ import { findActiveImportRun } from "./queries";
 import type { AffiliateAdapter, AffiliateNetwork, ImportRunStats, NetworkImportResult } from "./types";
 import {
   archiveMissingImportedOffers,
-  createStoreCache,
   recalculateImportedRanks,
-  upsertImportedOffer,
+  syncNetworkOffers,
 } from "./upsert-offers";
 
 function sleep(ms: number) {
@@ -43,14 +46,12 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
     return result;
   }
 
-  let fetchFailed = false;
   let offers: Awaited<ReturnType<AffiliateAdapter["fetchOffers"]>> = [];
 
   try {
     offers = await adapter.fetchOffers();
     result.fetched = offers.length;
   } catch (error) {
-    fetchFailed = true;
     result.fetchFailed = true;
     result.errors.push(
       error instanceof Error ? error.message : "Kunde inte hämta erbjudanden från nätverket",
@@ -58,28 +59,21 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
     return result;
   }
 
-  const storeCache = createStoreCache();
-
-  for (const offer of offers) {
-    try {
-      const outcome = await upsertImportedOffer(supabase, offer, storeCache);
-      if (outcome === "created") {
-        result.created += 1;
-      } else if (outcome === "updated") {
-        result.updated += 1;
-      } else {
-        result.skipped += 1;
-      }
-    } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : `Okänt fel för erbjudande ${offer.externalId}`,
-      );
-    }
+  try {
+    const synced = await syncNetworkOffers(supabase, adapter.network, offers, {
+      autoPublish: shouldAutoPublishImports(),
+    });
+    result.created = synced.created;
+    result.updated = synced.updated;
+    result.skipped = synced.skipped;
+    result.errors.push(...synced.errors);
+  } catch (error) {
+    result.errors.push(error instanceof Error ? error.message : "Importen misslyckades");
+    return result;
   }
 
   const allowArchive =
-    !fetchFailed &&
-    (offers.length >= MIN_FEED_SIZE_FOR_ARCHIVE || result.created + result.updated > 0);
+    offers.length >= MIN_FEED_SIZE_FOR_ARCHIVE || result.created + result.updated > 0;
 
   try {
     result.archived = await archiveMissingImportedOffers(
@@ -118,6 +112,8 @@ function summarizeStats(networkResults: NetworkImportResult[]): ImportRunStats {
 
 function revalidatePublicPages() {
   revalidatePath("/");
+  revalidatePath("/erbjudanden");
+  revalidatePath("/rabattkoder");
   revalidatePath("/kampanjer");
   revalidatePath("/butiker");
   revalidatePath("/kategorier");
@@ -189,8 +185,22 @@ export async function runAffiliateImport(
   }
 
   const networkResults: NetworkImportResult[] = [];
+  const startedAt = Date.now();
 
   for (const [index, adapter] of adapters.entries()) {
+    if (Date.now() - startedAt > IMPORT_TIME_BUDGET_MS) {
+      networkResults.push({
+        network: adapter.network,
+        fetched: 0,
+        created: 0,
+        updated: 0,
+        archived: 0,
+        skipped: 0,
+        errors: ["Hoppades över: tidsgränsen för körningen nåddes. Tas med vid nästa körning."],
+      });
+      continue;
+    }
+
     if (index > 0) {
       await sleep(NETWORK_SYNC_DELAY_MS);
     }

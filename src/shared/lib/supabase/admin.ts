@@ -21,11 +21,3 @@ export function getSupabaseAdminClient() {
 
   return adminClient;
 }
-
-export function createAdminClient() {
-  const client = getSupabaseAdminClient();
-  if (!client) {
-    throw new Error("Supabase admin client is not configured.");
-  }
-  return client;
-}

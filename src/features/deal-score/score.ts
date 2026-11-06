@@ -1,6 +1,6 @@
 export type DealScoreInput = {
-  discountType: "percentage" | "fixed_amount";
-  discountValue: number;
+  discountType: "percentage" | "fixed_amount" | null;
+  discountValue: number | null;
   createdAt: string;
   updatedAt: string;
   lastVerifiedAt?: string | null;
@@ -38,7 +38,11 @@ function hoursBetween(from: string, now: Date) {
   return (now.getTime() - new Date(from).getTime()) / 3_600_000;
 }
 
-function scoreDiscount(type: DealScoreInput["discountType"], value: number) {
+function scoreDiscount(type: DealScoreInput["discountType"], value: number | null) {
+  if (type === null || value === null) {
+    return 0;
+  }
+
   if (type === "percentage") {
     return clamp((value / 80) * 35, 0, 35);
   }

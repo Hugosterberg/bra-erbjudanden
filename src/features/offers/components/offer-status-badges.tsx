@@ -30,9 +30,7 @@ export function OfferStatusBadges({
       {commercial ? <CommercialLabelBadge label={commercial} /> : null}
       <Badge variant="outline">{formatRedemptionType(offer.redemption_type)}</Badge>
       {offer.category ? <Badge variant="secondary">{offer.category.name}</Badge> : null}
-      {isRecentlyVerified(offer.last_verified_at ?? offer.last_synced_at) ? (
-        <VerifiedBadge />
-      ) : null}
+      {isRecentlyVerified(offer.last_verified_at) ? <VerifiedBadge /> : null}
       {typeof score === "number" ? <DealScoreBadge score={score} /> : null}
     </div>
   );

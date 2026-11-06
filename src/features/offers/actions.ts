@@ -9,6 +9,7 @@ import { resolveUploadedImage } from "@/shared/lib/image-upload";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
 import { normalizeOfferInput, offerSchema } from "./schemas";
+import type { Offer } from "./types";
 
 export type OfferActionState = {
   ok: boolean;
@@ -74,7 +75,9 @@ function offerFormDataToInput(formData: FormData) {
     category_id: String(formData.get("category_id") ?? ""),
     redemption_type: String(formData.get("redemption_type") ?? "direct_link"),
     discount_type: String(formData.get("discount_type") ?? "percentage"),
-    discount_value: String(formData.get("discount_value") ?? "0"),
+    discount_value: String(formData.get("discount_value") ?? ""),
+    is_up_to: formData.get("is_up_to") === "on",
+    deal_label: String(formData.get("deal_label") ?? ""),
     discount_code: String(formData.get("discount_code") ?? ""),
     affiliate_url: String(formData.get("affiliate_url") ?? ""),
     terms: String(formData.get("terms") ?? ""),
@@ -143,6 +146,13 @@ export async function updateOfferAction(
     return { ok: false, message: error.message };
   }
 
+  // A manual edit is a decision: the next import must not overwrite it.
+  await supabase
+    .from("offers")
+    .update({ is_import_locked: true, import_archived_status: null })
+    .eq("id", id)
+    .eq("is_imported", true);
+
   revalidateOfferSurfaces();
 
   return { ok: true, message: "Erbjudandet uppdaterades." };
@@ -153,7 +163,10 @@ export async function publishOfferAction(id: string) {
   const supabase = getSupabaseAdminClient();
 
   if (supabase) {
-    await supabase.from("offers").update({ status: "published" }).eq("id", id);
+    await supabase
+      .from("offers")
+      .update({ status: "published", import_archived_status: null })
+      .eq("id", id);
   }
 
   revalidateOfferSurfaces();
@@ -164,7 +177,33 @@ export async function archiveOfferAction(id: string) {
   const supabase = getSupabaseAdminClient();
 
   if (supabase) {
-    await supabase.from("offers").update({ status: "archived" }).eq("id", id);
+    // Clearing the remembered status stops the next import from restoring it.
+    await supabase
+      .from("offers")
+      .update({ status: "archived", import_archived_status: null })
+      .eq("id", id);
+  }
+
+  revalidateOfferSurfaces();
+}
+
+export async function publishAllDraftImportsAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = getSupabaseAdminClient();
+  const network = String(formData.get("network") ?? "");
+
+  if (supabase) {
+    let query = supabase
+      .from("offers")
+      .update({ status: "published" })
+      .eq("status", "draft")
+      .eq("is_imported", true);
+
+    if (network) {
+      query = query.eq("affiliate_network", network as NonNullable<Offer["affiliate_network"]>);
+    }
+
+    await query;
   }
 
   revalidateOfferSurfaces();

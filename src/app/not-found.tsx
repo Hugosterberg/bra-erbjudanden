@@ -32,9 +32,8 @@ export default function NotFound() {
             Sidan finns inte
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Sidan du letade efter kan ha flyttats. Utgångna erbjudanden ligger
-            kvar med alternativa deals – annars finns aktuella rabatter på
-            startsidan.
+            Sidan du letade efter kan ha flyttats eller tagits bort. Aktuella
+            rabatter hittar du på startsidan.
           </p>
           <div className="mt-8 grid gap-2">
             <Button asChild size="lg" className="h-11">

@@ -23,6 +23,14 @@ export function getCronSecret() {
   return readEnv("CRON_SECRET");
 }
 
+/**
+ * Imported offers wait as drafts for manual review unless this is switched on,
+ * because a bad feed row must never reach visitors as a claim we made.
+ */
+export function shouldAutoPublishImports() {
+  return readEnv("AFFILIATE_IMPORT_AUTO_PUBLISH") === "true";
+}
+
 export function isNetworkConfigured(network: AffiliateNetwork) {
   switch (network) {
     case "addrevenue":

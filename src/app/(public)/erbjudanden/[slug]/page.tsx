@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, permanentRedirect } from "next/navigation";
 import { after } from "next/server";
-import { ArrowUpRight, Info, Sparkles, Timer } from "lucide-react";
+import { Info, Sparkles, Timer } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CouponFeedbackButtons } from "@/features/coupon-feedback/components/coupon-feedback-buttons";
 import { getCouponFeedbackSummary } from "@/features/coupon-feedback/queries";
@@ -15,20 +15,25 @@ import { findPublishedArticles } from "@/features/editorial/queries";
 import { articlePublicPath } from "@/features/editorial/types";
 import { CommercialLabelBadge } from "@/features/offers/components/commercial-label-badge";
 import { CouponCodeCopyButton } from "@/features/offers/components/coupon-code-copy-button";
+import { OfferCta } from "@/features/offers/components/offer-cta";
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { resolveOfferCommercialLabel } from "@/features/offers/commercial-labels";
-import { isOfferActive } from "@/features/offers/expiry";
 import {
-  formatDiscount,
-  formatOfferCtaLabel,
+  formatDealHeadline,
+  formatDealValue,
   formatOfferValidity,
   formatPrice,
   formatRedemptionType,
   resolveOfferPricing,
 } from "@/features/offers/format";
-import { findActiveOffers, findPublishedOfferBySlug } from "@/features/offers/queries";
+import {
+  findActiveOffers,
+  findEndedOfferRedirect,
+  findPublishedOfferBySlug,
+} from "@/features/offers/queries";
 import { RelatedContent } from "@/features/related/components/related-content";
 import { recordDiscoveryEvent } from "@/features/tracking/discovery-events";
+import { isLikelyBot } from "@/features/tracking/request-classification";
 import {
   createAbsoluteUrl,
   createBreadcrumbJsonLd,
@@ -55,17 +60,13 @@ export async function generateMetadata({ params }: OfferPageProps) {
     });
   }
 
-  const active = isOfferActive({
-    status: offer.status,
-    startsAt: offer.starts_at,
-    endsAt: offer.ends_at,
-  });
-
+  // Feed offers repeat text found on many sites and live briefly, so the store
+  // page is what should rank. An offer an admin has edited is original content.
   return createMetadata({
-    title: active ? offer.title : `${offer.title} (utgånget)`,
-    description: offer.description,
+    title: offer.title,
+    description: offer.description.slice(0, 300),
     path: `/erbjudanden/${offer.slug}`,
-    index: active,
+    index: !offer.is_imported || offer.is_import_locked,
   });
 }
 
@@ -74,24 +75,24 @@ export default async function OfferPage({ params }: OfferPageProps) {
   const offer = await findPublishedOfferBySlug(slug);
 
   if (!offer) {
+    // RLS hides ended offers, so this also covers every expired URL.
+    const redirectTo = await findEndedOfferRedirect(slug);
+    if (redirectTo) {
+      permanentRedirect(redirectTo);
+    }
     notFound();
   }
 
-  const active = isOfferActive({
-    status: offer.status,
-    startsAt: offer.starts_at,
-    endsAt: offer.ends_at,
-  });
+  // Runs after the response is streamed. A floating promise inside render can
+  // be dropped by the serverless runtime, and headers() cannot be read in there.
+  const requestHeaders = await headers();
 
-  if (active) {
-    // Runs after the response is streamed. A floating promise inside render can
-    // be dropped by the serverless runtime and reads headers() out of scope.
+  if (!isLikelyBot(requestHeaders.get("user-agent"))) {
     after(async () => {
-      await recordDiscoveryEvent({
-        eventType: "deal_view",
-        entityType: "offer",
-        entityId: offer.id,
-      });
+      await recordDiscoveryEvent(
+        { eventType: "deal_view", entityType: "offer", entityId: offer.id },
+        requestHeaders,
+      );
     });
   }
 
@@ -120,14 +121,14 @@ export default async function OfferPage({ params }: OfferPageProps) {
     isSponsored: offer.is_sponsored,
   });
   const commercial = resolveOfferCommercialLabel(offer);
-  // Only real verification signals count. Falling back to updated_at would
-  // present an ordinary edit as a verification we never made.
-  const verifiedAt = offer.last_verified_at ?? offer.last_synced_at;
+  // Only a person checking the offer counts as verification. A feed sync only
+  // says the network still lists it, and an edit says nothing at all.
+  const verifiedAt = offer.last_verified_at;
   const pricing = resolveOfferPricing(offer);
 
   return (
     <article className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_320px]">
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <Breadcrumbs
           items={[
             { href: "/", label: "Start" },
@@ -135,14 +136,6 @@ export default async function OfferPage({ params }: OfferPageProps) {
             { href: `/erbjudanden/${offer.slug}`, label: offer.title },
           ]}
         />
-        {!active ? (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
-            <p className="font-medium">Det här erbjudandet har gått ut</p>
-            <p className="mt-1 text-muted-foreground">
-              URL:en finns kvar så att du kan hitta nya deals från samma butik och kategori.
-            </p>
-          </div>
-        ) : null}
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {offer.is_featured ? (
@@ -154,7 +147,7 @@ export default async function OfferPage({ params }: OfferPageProps) {
             {commercial ? <CommercialLabelBadge label={commercial} /> : null}
             {offer.store ? <Badge variant="secondary">{offer.store.name}</Badge> : null}
             {offer.category ? <Badge variant="outline">{offer.category.name}</Badge> : null}
-            {active ? <DealScoreBadge score={score.score} /> : null}
+            <DealScoreBadge score={score.score} />
           </div>
           <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
             {offer.title}
@@ -162,15 +155,23 @@ export default async function OfferPage({ params }: OfferPageProps) {
           <p className="text-lg leading-8 text-muted-foreground">{offer.description}</p>
           <p className="text-xs text-muted-foreground">
             Deal Score är braerbjudandens ranking utifrån rabatt, aktualitet och
-            verifiering – inte ett historiskt prisbevis.
+            kontroll – inte ett historiskt prisbevis. Provision påverkar inte poängen.
           </p>
+        </div>
+        {/* On small screens the sidebar lands below everything else, so the way
+            to the store is repeated here instead of far down the page. */}
+        <div className="grid gap-2 lg:hidden">
+          {offer.discount_code ? (
+            <CouponCodeCopyButton code={offer.discount_code} offerId={offer.id} className="py-3" />
+          ) : null}
+          <OfferCta offer={offer} size="lg" className="h-11" />
         </div>
         <Separator />
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-            <p className="text-sm text-muted-foreground">Rabatt</p>
+            <p className="text-sm text-muted-foreground">Erbjudande</p>
             <p className="mt-1 text-2xl font-semibold tracking-tight" data-numeric>
-              {formatDiscount(offer.discount_type, offer.discount_value)}
+              {formatDealHeadline(offer)}
             </p>
           </div>
           <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
@@ -236,7 +237,7 @@ export default async function OfferPage({ params }: OfferPageProps) {
         {relatedOffers.filter((item) => item.id !== offer.id).length > 0 ? (
           <div>
             <h2 className="mb-4 text-lg font-semibold">
-              {active ? "Fler erbjudanden" : "Nya erbjudanden från samma butik"}
+              Fler erbjudanden
             </h2>
             <OfferGrid
               offers={relatedOffers.filter((item) => item.id !== offer.id).slice(0, 3)}
@@ -271,13 +272,15 @@ export default async function OfferPage({ params }: OfferPageProps) {
             data-numeric
           >
             <span className="text-3xl font-semibold leading-none">
-              {formatDiscount(offer.discount_type, offer.discount_value)}
+              {formatDealValue(offer)}
             </span>
-            <span className="mt-1 text-[10px] font-medium uppercase tracking-wide">
-              rabatt
-            </span>
+            {offer.discount_value !== null ? (
+              <span className="mt-1 text-[10px] font-medium uppercase tracking-wide">
+                {offer.is_up_to ? "upp till, rabatt" : "rabatt"}
+              </span>
+            ) : null}
           </div>
-          {active && offer.discount_code ? (
+          {offer.discount_code ? (
             <CouponCodeCopyButton
               code={offer.discount_code}
               offerId={offer.id}
@@ -285,32 +288,17 @@ export default async function OfferPage({ params }: OfferPageProps) {
               codeClassName="text-xl"
             />
           ) : null}
-          {active ? (
-            <Button asChild size="lg" className="h-11 w-full whitespace-normal text-center leading-tight">
-              <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
-                {formatOfferCtaLabel(offer)}
-                <ArrowUpRight className="size-4" />
-              </Link>
-            </Button>
-          ) : offer.store ? (
-            <Button asChild variant="outline" className="w-full">
-              <Link href={`/butiker/${offer.store.slug}`}>Se aktuella deals från butiken</Link>
-            </Button>
-          ) : (
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/erbjudanden">Se aktuella erbjudanden</Link>
-            </Button>
-          )}
+          <OfferCta offer={offer} size="lg" className="h-11" />
           <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
             <Timer className="size-3.5 text-primary" />
-            {active ? `Gäller till ${formatOfferValidity(offer.ends_at)}` : "Utgånget"}
+            Gäller till {formatOfferValidity(offer.ends_at)}
           </div>
           <p className="text-xs text-muted-foreground">
             {verifiedAt
-              ? `Senast verifierad ${formatOfferValidity(verifiedAt)}`
-              : "Inte verifierad ännu"}
+              ? `Senast kontrollerad av oss ${formatOfferValidity(verifiedAt)}`
+              : "Hämtat från butiken eller affiliatenätverket. Inte manuellt kontrollerat."}
           </p>
-          {active && offer.discount_code ? (
+          {offer.discount_code ? (
             <div className="text-left">
               <CouponFeedbackButtons
                 offerId={offer.id}
@@ -321,8 +309,7 @@ export default async function OfferPage({ params }: OfferPageProps) {
           <AffiliateDisclosure />
         </div>
       </aside>
-      {active ? (
-        <script
+      <script
           type="application/ld+json"
           dangerouslySetInnerHTML={createJsonLd({
             "@context": "https://schema.org",
@@ -347,7 +334,6 @@ export default async function OfferPage({ params }: OfferPageProps) {
               : {}),
           })}
         />
-      ) : null}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={createJsonLd(

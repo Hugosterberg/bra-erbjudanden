@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/import-offers",
       "schedule": "0 1,13 * * *"
+    },
+    {
+      "path": "/api/cron/sync-transactions",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/purge-tracking",
+      "schedule": "30 3 * * *"
     }
   ]
 }

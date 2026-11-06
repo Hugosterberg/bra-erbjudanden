@@ -72,7 +72,8 @@ export function StoreLogo({
           height={imageSizes[size]}
           className="size-full object-contain p-0.5"
           onError={() => setErrored(true)}
-          unoptimized
+          // Logos come from many network hosts and are served as they are.
+          unoptimized={Boolean(logoUrl)}
         />
       </span>
     );

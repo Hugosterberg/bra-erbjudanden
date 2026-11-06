@@ -19,6 +19,8 @@ import {
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 import { PageHeader } from "@/shared/ui/page-header";
 
+export const revalidate = 300;
+
 type CategoryPageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -43,7 +45,7 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 
   return createMetadata({
     title: `${category.name} – erbjudanden & rabatter`,
-    description: `Bra erbjudanden, rabatter och rabattkoder inom ${category.name.toLowerCase()}. ${category.seo_intro ?? category.description ?? "Handplockade deals – alltid aktiva."}`,
+    description: `Bra erbjudanden, rabatter och rabattkoder inom ${category.name.toLowerCase()}. ${category.seo_intro ?? category.description ?? ""}`.trim().slice(0, 300),
     path: `/kategorier/${slug}`,
     index: hasIndexableContent({
       offerCount: offers.length,
@@ -82,7 +84,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         description={
           category.seo_intro ??
           category.description ??
-          "Handplockade erbjudanden i denna kategori."
+          "Aktuella erbjudanden i den här kategorin."
         }
         icon={Tags}
         stats={[

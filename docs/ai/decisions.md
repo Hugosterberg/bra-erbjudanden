@@ -102,14 +102,7 @@ Dokumentera viktiga beslut här när AI:n gör antaganden.
 - 8,500+ lines of TypeScript
 - Full JSDoc documentation
 
-**Expected Revenue (Year 1)**
-- Month 1: €5,200
-- Month 6: €46,000
-- Year 1: €130,000-200,000
-- Year 2: €200,000-300,000+
-
-Siffrorna ovan är interna mål från ad-network-arbetet, inte uppmätt trafik.
-De får aldrig publiceras som statistik på sajten (se `/partner`).
+(Intäktsmålen som stod här saknade underlag och är borttagna. Se 2026-11-06.)
 
 **Design Principles**
 - **Privacy First**: No PII in logs, anonymous tracking only
@@ -156,3 +149,66 @@ De får aldrig publiceras som statistik på sajten (se `/partner`).
 - Typfiltret på `/rabattkoder` byggde URL:er som sidan ignorerade och är borttaget.
 - Butikens `affiliate_url` var konfigurerbar men oanvänd; den går nu via
   `/go/butik/[slug]` med spårning.
+
+## 2026-11-06 – Intäktsgrund
+
+Bakgrund: granskningen visade att sajten inte kunde tjäna pengar. Katalogen hade 2
+manuella erbjudanden utan affiliatelänkar, och flera adaptrar valde butikens egen
+URL i stället för spårningslänken.
+
+- **Annonsnätverket är borttaget ur koden.** Omkring 4 900 rader var bortkopplade
+  och header bidding returnerade hårdkodade låtsasbud. Koden finns kvar i grenen
+  `archive/ad-network`. Tabellerna ligger kvar i databasen tills någon aktivt
+  beslutar att ta bort dem, eftersom en radering inte går att ångra.
+- **Klick räknas bara när det är klick.** `next/link` prefetchade `/go`, vilket vi
+  bekräftade med ett test på samma Next-version. CTA:n är nu ett vanligt `<a>` och
+  rutten ignorerar prefetch, HEAD och botar. Historiska klick kan vara uppblåsta.
+- **Rabatter hittas inte på.** Fallback till 5 % är borttagen, och ett tal räknas
+  bara som rabatt när texten presenterar det så. Annars visas en etikett som Fri
+  frakt eller Kampanj, så `discount_type` och `discount_value` kan vara null.
+- **Import är inte verifiering.** `last_verified_at` sätts bara av en person.
+  Rankändringar och synkar ändrar inte längre `updated_at`, vilket tidigare gav
+  importerade erbjudanden omkring 25 extra poäng i Deal Score.
+- **Import publicerar som utkast.** `AFFILIATE_IMPORT_AUTO_PUBLISH=true` stänger av
+  granskningen. Redigerade erbjudanden låses mot överskrivning, och erbjudanden som
+  en admin arkiverat återpubliceras aldrig automatiskt.
+- **Länkar utan spårning hoppas över** och rapporteras i importloggen, eftersom ett
+  erbjudande som tyst inte ger provision är sämre än ett som saknas.
+- **Provision styr inte Deal Score.** Den används för val av nätverk och var vi lägger
+  arbete, så att löftet på sajten håller.
+- **Importerade erbjudandesidor är noindex** och ligger inte i sitemap. Feedtext finns
+  på många sajter och är kortlivad, så butikssidorna är det som ska ranka. Ett
+  redigerat erbjudande räknas som eget innehåll och indexeras.
+- **Rate limiting ligger i Postgres** eftersom serverless-instanser inte delar minne.
+  Den släpper igenom vid databasfel, eftersom utelåsning är värre än ett missat tak.
+- **Dubbel bekräftelse för nyhetsbrevet.** Länkar i mejl öppnar bara en sida med en
+  knapp, eftersom säkerhetsskannrar följer länkar. Prenumeranter som redan var aktiva
+  behåller sin status, men saknar `confirmed_at`.
+- **Resend anropas via REST utan SDK**, för att inte lägga till ett beroende för två
+  anrop. Vercel Web Analytics lades till (`@vercel/analytics`) eftersom det är
+  cookiefritt och inte kräver samtyckesbanner.
+- **Marknader är förberedda men inte aktiverade.** `market` finns på erbjudanden och
+  butiker, och språk och valuta ligger i `shared/config/market.ts`. Rutter, texter
+  och domänrouting är fortfarande svenska.
+
+- **Ett utskick får hellre missa någon än skicka dubbelt.** Varje mottagare reserveras i
+  `newsletter_deliveries` innan mejlet går iväg, så två samtidiga körningar kan inte skicka
+  till samma person. Bara svar 429 från Resend försöks igen, eftersom andra fel kan betyda
+  att mejlet ändå skickades.
+- **Spårningsdata gallras.** Hashad IP och user-agent tas bort efter 90 dagar och
+  statistikhändelser efter 13 månader. Klicken sparas utan dem, eftersom de behövs för att
+  stämma av provision. Perioderna står på `/integritetspolicy`.
+- **Favicons går via bildoptimeringen.** Annars kontaktar varje besökares webbläsare Google,
+  vilket integritetspolicyn inte kan lova bort.
+
+### Hur långt nätverkens format är verifierat
+
+Inget av detta har körts mot riktiga API:er, eftersom nycklar saknas.
+
+| Nätverk | Erbjudanden | Klick-id på länk | Provision |
+| --- | --- | --- | --- |
+| Awin | Dokumentation | `clickref`, dokumentation | Dokumentation |
+| Tradedoubler | Dokumentation | `epi`, tredjepartskällor | Inte byggd, formatet kunde inte verifieras |
+| Adtraction | Dokumentation | `epi`, dokumentation | Dokumentation, men fältet för `epi` i svaret är ett antagande |
+| Addrevenue | Dokumentation | Av tills testköp visar parameter (`ADDREVENUE_CLICK_REF_PARAM`) | Dokumentation |
+| Adrecord | Inte verifierat, dokumentationen gick inte att nå | `epi`, tredjepartskälla | Inte byggd |

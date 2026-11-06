@@ -1,10 +1,10 @@
 export class AffiliateApiError extends Error {
-  constructor(
-    message: string,
-    readonly status?: number,
-  ) {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = "AffiliateApiError";
+    this.status = status;
   }
 }
 
@@ -122,6 +122,11 @@ export function pickNumber(record: Record<string, unknown>, keys: string[]) {
   }
 
   return null;
+}
+
+/** Network ids arrive as numbers or strings depending on the endpoint. */
+export function pickId(record: Record<string, unknown>, keys: string[]) {
+  return pickString(record, keys) || String(pickNumber(record, keys) ?? "");
 }
 
 export function toIsoDate(value: unknown) {

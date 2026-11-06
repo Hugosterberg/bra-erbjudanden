@@ -23,7 +23,7 @@ export async function generateMetadata({
   return createMetadata({
     title: "Rabattkoder – aktuella koder från svenska butiker",
     description:
-      "Aktuella rabattkoder som du kan kopiera och använda i kassan. Vi visar bara koder som fortfarande är aktiva, med villkor och utgångsdatum.",
+      "Aktuella rabattkoder som du kan kopiera och använda i kassan, med villkor och utgångsdatum när butiken anger dem.",
     path: "/rabattkoder",
     index: !filtered,
   });
@@ -50,8 +50,8 @@ export default async function DiscountCodesPage({
     <>
       <PageHeader
         eyebrow="Rabattkoder"
-        title="Rabattkoder som fortfarande gäller"
-        description="Kopiera koden, gå till butiken och klistra in den i kassan. Varje kod visar villkor och hur länge den gäller."
+        title="Aktuella rabattkoder"
+        description="Kopiera koden, gå till butiken och klistra in den i kassan. Villkor och slutdatum visas när butiken anger dem."
         icon={TicketPercent}
         stats={[{ value: sorted.length, label: "aktiva rabattkoder" }]}
       />

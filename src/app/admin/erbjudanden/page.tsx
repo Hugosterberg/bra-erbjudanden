@@ -16,8 +16,12 @@ import { AdminShell } from "@/features/admin/components/admin-shell";
 import { StatusBadge } from "@/features/admin/components/status-badge";
 import { formatNetworkLabel } from "@/features/affiliate-import/network-labels";
 import { AFFILIATE_NETWORKS, type AffiliateNetwork } from "@/features/affiliate-import/types";
-import { archiveOfferAction, publishOfferAction } from "@/features/offers/actions";
-import { formatDiscount, formatRedemptionType } from "@/features/offers/format";
+import {
+  archiveOfferAction,
+  publishAllDraftImportsAction,
+  publishOfferAction,
+} from "@/features/offers/actions";
+import { formatDealValue, formatRedemptionType } from "@/features/offers/format";
 import { findAdminOffers } from "@/features/offers/queries";
 import { createMetadata } from "@/shared/lib/seo";
 
@@ -60,6 +64,7 @@ export default async function AdminOffersPage({
   });
 
   const hasFilters = Boolean(networkFilter || statusFilter || importedFilter !== undefined);
+  const showBulkPublish = statusFilter === "draft" && importedFilter === true && offers.length > 0;
 
   return (
     <AdminShell>
@@ -105,8 +110,27 @@ export default async function AdminOffersPage({
           </div>
         </div>
 
+        {showBulkPublish ? (
+          <form
+            action={publishAllDraftImportsAction}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
+          >
+            <p>
+              {offers.length} importerade utkast väntar på granskning. Kontrollera rabatt och
+              villkor innan de publiceras, eftersom de visas som våra påståenden.
+            </p>
+            <input type="hidden" name="network" value={networkFilter ?? ""} />
+            <Button size="sm" type="submit">
+              Publicera alla {offers.length}
+            </Button>
+          </form>
+        ) : null}
+
         {!hasFilters ? (
           <div className="flex flex-wrap gap-2">
+            <Button variant="default" size="sm" asChild>
+              <Link href="/admin/erbjudanden?status=draft&imported=1">Granska importerade utkast</Link>
+            </Button>
             {AFFILIATE_NETWORKS.map((item) => (
               <Button key={item} variant="outline" size="sm" asChild>
                 <Link href={`/admin/erbjudanden?network=${item}&imported=1&status=published`}>
@@ -124,7 +148,7 @@ export default async function AdminOffersPage({
                 <p className="font-medium">Inga erbjudanden matchar filtret</p>
                 <p className="mt-2 text-muted-foreground">
                   {networkFilter
-                    ? `Det finns inga publicerade importerade erbjudanden för ${formatNetworkLabel(networkFilter)} ännu.`
+                    ? `Det finns inga importerade erbjudanden för ${formatNetworkLabel(networkFilter)} med det här filtret.`
                     : "Prova att ändra filter eller skapa ett nytt erbjudande."}
                 </p>
                 {networkFilter ? (
@@ -155,9 +179,7 @@ export default async function AdminOffersPage({
                       <TableCell className="font-medium">{offer.title}</TableCell>
                       <TableCell>{offer.store?.name ?? "-"}</TableCell>
                       <TableCell>{formatRedemptionType(offer.redemption_type)}</TableCell>
-                      <TableCell>
-                        {formatDiscount(offer.discount_type, offer.discount_value)}
-                      </TableCell>
+                      <TableCell>{formatDealValue(offer)}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatNetworkLabel(offer.affiliate_network)}
                       </TableCell>

@@ -13,6 +13,8 @@ export type ImportedStoreDraft = {
   name: string;
   websiteUrl?: string | null;
   logoUrl?: string | null;
+  /** Programme-level tracking link, used by the "Besök butik" button. */
+  affiliateUrl?: string | null;
 };
 
 export type ImportedOfferDraft = {
@@ -22,8 +24,10 @@ export type ImportedOfferDraft = {
   description: string;
   store: ImportedStoreDraft;
   redemptionType: "discount_code" | "direct_link";
-  discountType: "percentage" | "fixed_amount";
-  discountValue: number;
+  discountType: "percentage" | "fixed_amount" | null;
+  discountValue: number | null;
+  isUpTo: boolean;
+  dealLabel: string | null;
   discountCode?: string | null;
   affiliateUrl: string;
   terms?: string | null;

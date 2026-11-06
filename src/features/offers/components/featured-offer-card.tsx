@@ -1,19 +1,15 @@
 import Link from "next/link";
-import { ArrowUpRight, Sparkles, Timer } from "lucide-react";
+import { Sparkles, Timer } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferCta } from "./offer-cta";
 import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
 import { OfferTerms } from "./offer-terms";
 import { StoreLogo } from "@/shared/ui/store-logo";
-import {
-  formatDiscount,
-  formatOfferCtaLabel,
-  formatOfferValidity,
-} from "../format";
+import { formatDealValue, formatOfferValidity, hasNumericDiscount } from "../format";
 import type { OfferWithRelations } from "../types";
 
 export function FeaturedOfferCard({ offer }: { offer: OfferWithRelations }) {
@@ -45,7 +41,8 @@ export function FeaturedOfferCard({ offer }: { offer: OfferWithRelations }) {
           <OfferMedia
             imageUrl={offer.image_url}
             title={offer.title}
-            discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
+            discountLabel={formatDealValue(offer)}
+              showDiscountCaption={hasNumericDiscount(offer)}
             className="size-32"
             chipTextClassName="text-2xl"
           />
@@ -73,27 +70,13 @@ export function FeaturedOfferCard({ offer }: { offer: OfferWithRelations }) {
 
         <div className="grid gap-2">
           <OfferDiscountBadge
-            discountType={offer.discount_type}
-            discountValue={offer.discount_value}
+            offer={offer}
             className="w-full"
           />
           {offer.discount_code ? (
             <CouponCodeCopyButton code={offer.discount_code} offerId={offer.id} />
           ) : null}
-          <Button
-            asChild
-            size="lg"
-            className="relative h-auto min-h-11 w-full overflow-hidden whitespace-normal py-2 text-center leading-tight"
-          >
-            <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 -translate-x-full skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover/button:translate-x-full"
-              />
-              {formatOfferCtaLabel(offer)}
-              <ArrowUpRight className="size-4" />
-            </Link>
-          </Button>
+          <OfferCta offer={offer} />
         </div>
       </div>
     </div>

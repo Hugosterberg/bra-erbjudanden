@@ -204,7 +204,7 @@ export const NETWORK_SETUP_GUIDES: Record<AffiliateNetwork, NetworkSetupGuide> =
       },
     ],
     notes: [
-      "API-bas: api.adtraction.net/v3/partner/offers/",
+      "API: erbjudanden hämtas från api.adtraction.net/v2/partner/offers/ och godkända program från v3/partner/programs/",
       "Erbjudanden med market ≠ SE ignoreras.",
     ],
   },

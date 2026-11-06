@@ -24,7 +24,7 @@ export async function generateMetadata({
   return createMetadata({
     title: "Erbjudanden – aktuella rabatter och deals",
     description:
-      "Alla aktuella erbjudanden på braerbjudanden.se. Filtrera på kategori, butik, rabattkod eller kampanj – bara aktiva deals.",
+      "Alla aktuella erbjudanden på braerbjudanden.se. Filtrera på kategori, butik, rabattkod eller kampanj – bara erbjudanden inom sin giltighetstid.",
     path: "/erbjudanden",
     index: !filtered,
   });
@@ -60,7 +60,7 @@ export default async function OffersIndexPage({
       <PageHeader
         eyebrow="Erbjudanden"
         title="Aktuella erbjudanden"
-        description="Handplockade och importerade deals som fortfarande gäller. Filtrera efter det du faktiskt letar efter."
+        description="Erbjudanden som fortfarande gäller, valda av oss eller hämtade från våra affiliatenätverk. Filtrera efter det du faktiskt letar efter."
         icon={Tag}
         stats={[{ value: sorted.length, label: "aktiva erbjudanden" }]}
       />

@@ -1,5 +1,6 @@
 import { cache } from "react";
 
+import { currentMarket } from "@/shared/config/market";
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
@@ -17,6 +18,7 @@ export const findActiveStores = cache(async (): Promise<Store[]> => {
     .from("stores")
     .select("*")
     .eq("status", "active")
+    .eq("market", currentMarket.code)
     .order("name", { ascending: true });
 
   return (data ?? []) as Store[];

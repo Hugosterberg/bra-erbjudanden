@@ -1,21 +1,17 @@
 import Link from "next/link";
-import { ArrowUpRight, Timer } from "lucide-react";
+import { Timer } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { scoreOffer } from "@/features/deal-score/from-offer";
 import { StoreLogo } from "@/shared/ui/store-logo";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferCta } from "./offer-cta";
 import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
 import { OfferStatusBadges } from "./offer-status-badges";
 import { OfferTerms } from "./offer-terms";
-import {
-  formatDiscount,
-  formatOfferCtaLabel,
-  formatOfferValidity,
-} from "../format";
+import { formatDealValue, formatOfferValidity, hasNumericDiscount } from "../format";
 import type { OfferHeadingLevel, OfferWithRelations } from "../types";
 
 export function OfferCard({
@@ -44,7 +40,8 @@ export function OfferCard({
           <OfferMedia
             imageUrl={offer.image_url}
             title={offer.title}
-            discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
+            discountLabel={formatDealValue(offer)}
+              showDiscountCaption={hasNumericDiscount(offer)}
             className="size-28"
           />
         </div>
@@ -72,19 +69,13 @@ export function OfferCard({
       </CardContent>
       <CardFooter className="mt-auto grid gap-2">
         <OfferDiscountBadge
-          discountType={offer.discount_type}
-          discountValue={offer.discount_value}
+            offer={offer}
           className="w-full"
         />
         {offer.discount_code ? (
           <CouponCodeCopyButton code={offer.discount_code} offerId={offer.id} />
         ) : null}
-        <Button asChild className="h-auto w-full whitespace-normal py-2 text-center leading-tight">
-          <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
-            {formatOfferCtaLabel(offer)}
-            <ArrowUpRight className="size-4 shrink-0" />
-          </Link>
-        </Button>
+        <OfferCta offer={offer} />
       </CardFooter>
     </Card>
   );

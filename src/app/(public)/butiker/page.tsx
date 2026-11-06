@@ -4,7 +4,7 @@ import { Store } from "lucide-react";
 import { StoreGrid } from "@/features/stores/components/store-grid";
 import { groupStoresAlphabetically } from "@/features/stores/group";
 import { findActiveStores } from "@/features/stores/queries";
-import { findActiveOffers } from "@/features/offers/queries";
+import { findActiveOfferSummaries } from "@/features/offers/queries";
 import { countStoreClicksSince, daysAgo } from "@/features/tracking/discovery-events";
 import { createMetadata } from "@/shared/lib/seo";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -21,15 +21,13 @@ export const metadata = createMetadata({
 export default async function StoresPage() {
   const [stores, offers, weeklyClicks] = await Promise.all([
     findActiveStores(),
-    findActiveOffers(),
+    findActiveOfferSummaries(),
     countStoreClicksSince(daysAgo(7)),
   ]);
 
   const offerCounts = new Map<string, number>();
   for (const offer of offers) {
-    if (offer.store?.id) {
-      offerCounts.set(offer.store.id, (offerCounts.get(offer.store.id) ?? 0) + 1);
-    }
+    offerCounts.set(offer.store_id, (offerCounts.get(offer.store_id) ?? 0) + 1);
   }
 
   const featured = stores.filter((store) => store.is_featured);

@@ -1,161 +1,270 @@
-import { createSlug } from "@/shared/lib/slug";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { isTrackingUrl } from "@/features/tracking/click-reference";
+import { currentMarket } from "@/shared/config/market";
+import { fetchAllPages } from "@/shared/lib/supabase/fetch-all-pages";
+import { createSlug } from "@/shared/lib/slug";
 import type { Database } from "@/shared/types/database";
 
-import { MANUAL_RANK_RESERVE } from "./constants";
-import { compareImportedOffers } from "./rank";
+import { IMPORT_BATCH_SIZE, MANUAL_RANK_RESERVE } from "./constants";
 import { resolveImportedStore } from "./resolve-store";
-import type { AffiliateNetwork, ImportedOfferDraft, ImportedStoreDraft } from "./types";
+import { suggestCategorySlug } from "./suggest-category";
+import type { AffiliateNetwork, ImportedOfferDraft } from "./types";
 
 type AdminClient = SupabaseClient<Database>;
+type OfferInsert = Database["public"]["Tables"]["offers"]["Insert"];
+type OfferUpdate = Database["public"]["Tables"]["offers"]["Update"];
+type OfferStatus = Database["public"]["Enums"]["offer_status"];
 
-export type StoreCache = Map<string, string>;
+const EXISTING_OFFER_COLUMNS =
+  "id, external_id, slug, title, description, store_id, category_id, redemption_type, discount_type, discount_value, is_up_to, deal_label, discount_code, affiliate_url, terms, image_url, starts_at, ends_at, status, is_import_locked, import_archived_status";
 
-function storeCacheKey(network: AffiliateNetwork, externalId: string) {
-  return `${network}:${externalId}`;
-}
+type ExistingOffer = {
+  id: string;
+  external_id: string | null;
+  slug: string;
+  title: string;
+  description: string;
+  store_id: string;
+  category_id: string | null;
+  redemption_type: Database["public"]["Enums"]["redemption_type"];
+  discount_type: Database["public"]["Enums"]["discount_type"] | null;
+  discount_value: number | null;
+  is_up_to: boolean;
+  deal_label: string | null;
+  discount_code: string | null;
+  affiliate_url: string;
+  terms: string | null;
+  image_url: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  status: OfferStatus;
+  is_import_locked: boolean;
+  import_archived_status: OfferStatus | null;
+};
 
-export function createStoreCache() {
-  return new Map<string, string>();
-}
+export type OfferSyncResult = {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+};
 
-async function findExistingOffer(
-  supabase: AdminClient,
-  network: AffiliateNetwork,
-  externalId: string,
-) {
-  const { data } = await supabase
-    .from("offers")
-    .select("id, slug, is_featured, category_id")
-    .eq("affiliate_network", network)
-    .eq("external_id", externalId)
-    .maybeSingle();
-
-  return data;
-}
-
-async function findUniqueOfferSlug(
-  supabase: AdminClient,
-  baseSlug: string,
-  network: AffiliateNetwork,
-  externalId: string,
-) {
-  const preferred = `${baseSlug}-${network}-${externalId}`.slice(0, 80);
-  const { data } = await supabase.from("offers").select("id").eq("slug", preferred).maybeSingle();
-
-  if (!data) {
-    return preferred;
+function chunk<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
   }
-
-  const slug = baseSlug;
-  let suffix = 2;
-
-  while (true) {
-    const candidate = `${slug}-${suffix}`.slice(0, 80);
-    const { data: existing } = await supabase
-      .from("offers")
-      .select("id")
-      .eq("slug", candidate)
-      .maybeSingle();
-
-    if (!existing) {
-      return candidate;
-    }
-
-    suffix += 1;
-  }
+  return chunks;
 }
 
-function buildOfferRow(
-  draft: ImportedOfferDraft,
-  storeId: string,
-  slug: string,
-  now: string,
-  preserve?: { is_featured: boolean; category_id: string | null },
-) {
+function sameInstant(a: string | null, b: string | null | undefined) {
+  if (!a || !b) {
+    return !a && !b;
+  }
+  return new Date(a).getTime() === new Date(b).getTime();
+}
+
+/** Only content changes count, so that unchanged rows keep their updated_at. */
+function buildContent(draft: ImportedOfferDraft, storeId: string) {
+  const discountCode =
+    draft.redemptionType === "discount_code" ? (draft.discountCode ?? null) : null;
+
   return {
     title: draft.title,
-    slug,
     description: draft.description,
     store_id: storeId,
-    category_id: preserve?.category_id ?? null,
-    redemption_type: draft.redemptionType,
+    // The database rejects a code redemption without a code.
+    redemption_type: discountCode ? ("discount_code" as const) : ("direct_link" as const),
     discount_type: draft.discountType,
     discount_value: draft.discountValue,
-    discount_code: draft.redemptionType === "discount_code" ? draft.discountCode : null,
+    is_up_to: draft.isUpTo,
+    deal_label: draft.dealLabel,
+    discount_code: discountCode,
     affiliate_url: draft.affiliateUrl,
-    terms: draft.terms,
-    image_url: draft.imageUrl,
-    starts_at: draft.startsAt,
-    ends_at: draft.endsAt,
-    status: "published" as const,
-    is_featured: preserve?.is_featured ?? false,
-    affiliate_network: draft.network,
-    external_id: draft.externalId,
-    is_imported: true,
-    last_synced_at: now,
-    last_verified_at: now,
-    updated_at: now,
+    terms: draft.terms ?? null,
+    image_url: draft.imageUrl ?? null,
+    starts_at: draft.startsAt ?? null,
+    ends_at: draft.endsAt ?? null,
   };
 }
 
-async function resolveStoreWithCache(
-  supabase: AdminClient,
-  network: AffiliateNetwork,
-  store: ImportedStoreDraft,
-  cache: StoreCache,
-) {
-  const key = storeCacheKey(network, store.externalId);
-  const cached = cache.get(key);
-  if (cached) {
-    return cached;
-  }
-
-  const storeId = await resolveImportedStore(supabase, network, store);
-  cache.set(key, storeId);
-  return storeId;
+function hasContentChanged(existing: ExistingOffer, next: ReturnType<typeof buildContent>) {
+  return (
+    existing.title !== next.title ||
+    existing.description !== next.description ||
+    existing.store_id !== next.store_id ||
+    existing.redemption_type !== next.redemption_type ||
+    existing.discount_type !== next.discount_type ||
+    (existing.discount_value === null ? null : Number(existing.discount_value)) !==
+      next.discount_value ||
+    existing.is_up_to !== next.is_up_to ||
+    existing.deal_label !== next.deal_label ||
+    existing.discount_code !== next.discount_code ||
+    existing.affiliate_url !== next.affiliate_url ||
+    existing.terms !== next.terms ||
+    existing.image_url !== next.image_url ||
+    !sameInstant(existing.starts_at, next.starts_at) ||
+    !sameInstant(existing.ends_at, next.ends_at)
+  );
 }
 
-export async function upsertImportedOffer(
-  supabase: AdminClient,
-  draft: ImportedOfferDraft,
-  cache: StoreCache = createStoreCache(),
-): Promise<"created" | "updated" | "skipped"> {
-  if (!draft.affiliateUrl || draft.discountValue <= 0) {
-    return "skipped";
-  }
+function createOfferSlug(draft: ImportedOfferDraft) {
+  const suffix = createSlug(`${draft.network}-${draft.externalId}`);
+  return `${createSlug(draft.title).slice(0, 80 - suffix.length - 1)}-${suffix}`.replace(/^-/, "");
+}
 
-  const storeId = await resolveStoreWithCache(supabase, draft.network, draft.store, cache);
-  const existing = await findExistingOffer(supabase, draft.network, draft.externalId);
-  const now = new Date().toISOString();
-  const baseSlug = createSlug(draft.title);
-  const slug =
-    existing?.slug ??
-    (await findUniqueOfferSlug(supabase, baseSlug, draft.network, draft.externalId));
-  const row = buildOfferRow(draft, storeId, slug, now, existing ?? undefined);
-
-  if (existing?.id) {
-    const { error } = await supabase.from("offers").update(row).eq("id", existing.id);
-    if (error) {
-      throw new Error(`Could not update offer "${draft.title}": ${error.message}`);
+async function insertOffers(supabase: AdminClient, rows: OfferInsert[], result: OfferSyncResult) {
+  for (const rows_ of chunk(rows, IMPORT_BATCH_SIZE)) {
+    const { error } = await supabase.from("offers").insert(rows_);
+    if (!error) {
+      result.created += rows_.length;
+      continue;
     }
 
-    return "updated";
+    // One bad row must not cost the whole batch.
+    for (const row of rows_) {
+      const { error: rowError } = await supabase.from("offers").insert(row);
+      if (rowError) {
+        result.errors.push(`Kunde inte skapa "${row.title}": ${rowError.message}`);
+      } else {
+        result.created += 1;
+      }
+    }
+  }
+}
+
+async function updateOffers(
+  supabase: AdminClient,
+  updates: Array<{ id: string; title: string; patch: OfferUpdate }>,
+  result: OfferSyncResult,
+) {
+  for (const batch of chunk(updates, 25)) {
+    await Promise.all(
+      batch.map(async (update) => {
+        const { error } = await supabase.from("offers").update(update.patch).eq("id", update.id);
+        if (error) {
+          result.errors.push(`Kunde inte uppdatera "${update.title}": ${error.message}`);
+        } else {
+          result.updated += 1;
+        }
+      }),
+    );
+  }
+}
+
+async function findCategoryIdsBySlug(supabase: AdminClient) {
+  const { data } = await supabase.from("categories").select("id, slug").eq("status", "active");
+  return new Map((data ?? []).map((row) => [row.slug, row.id]));
+}
+
+export async function syncNetworkOffers(
+  supabase: AdminClient,
+  network: AffiliateNetwork,
+  drafts: ImportedOfferDraft[],
+  options: { autoPublish: boolean },
+): Promise<OfferSyncResult> {
+  const result: OfferSyncResult = { created: 0, updated: 0, skipped: 0, errors: [] };
+  const now = new Date().toISOString();
+
+  const existingRows = await fetchAllPages<ExistingOffer>((from, to) =>
+    supabase
+      .from("offers")
+      .select(EXISTING_OFFER_COLUMNS)
+      .eq("affiliate_network", network)
+      .eq("is_imported", true)
+      .range(from, to),
+  );
+  const existingByExternalId = new Map(existingRows.map((row) => [row.external_id, row]));
+  const categoryIds = await findCategoryIdsBySlug(supabase);
+
+  const storeIds = new Map<string, string>();
+  const inserts: OfferInsert[] = [];
+  const updates: Array<{ id: string; title: string; patch: OfferUpdate }> = [];
+  const seenIds: string[] = [];
+  let untracked = 0;
+
+  for (const draft of drafts) {
+    // A link that does not carry the network's tracking earns nothing, and a
+    // silently unpaid offer is worse than a missing one.
+    if (!isTrackingUrl(network, draft.affiliateUrl)) {
+      untracked += 1;
+      result.skipped += 1;
+      continue;
+    }
+
+    let storeId = storeIds.get(draft.store.externalId);
+    if (!storeId) {
+      try {
+        storeId = await resolveImportedStore(supabase, network, draft.store);
+        storeIds.set(draft.store.externalId, storeId);
+      } catch (error) {
+        result.skipped += 1;
+        result.errors.push(error instanceof Error ? error.message : "Butiken kunde inte skapas");
+        continue;
+      }
+    }
+
+    const content = buildContent(draft, storeId);
+    const suggestedCategory =
+      categoryIds.get(suggestCategorySlug(draft.title, draft.description, draft.store.name) ?? "") ??
+      null;
+    const existing = existingByExternalId.get(draft.externalId);
+
+    if (!existing) {
+      inserts.push({
+        ...content,
+        slug: createOfferSlug(draft),
+        category_id: suggestedCategory,
+        status: options.autoPublish ? "published" : "draft",
+        is_featured: false,
+        affiliate_network: network,
+        external_id: draft.externalId,
+        is_imported: true,
+        imported_at: now,
+        last_synced_at: now,
+        rank_position: MANUAL_RANK_RESERVE + 1,
+        market: currentMarket.code,
+      });
+      continue;
+    }
+
+    seenIds.push(existing.id);
+
+    // Back in the feed after an automatic archive: restore what it was before.
+    // An offer an admin archived has no such status and stays archived.
+    const statusPatch: OfferUpdate = existing.import_archived_status
+      ? { status: existing.import_archived_status, import_archived_status: null }
+      : {};
+
+    // An admin edit locks the content, so the next sync cannot undo it.
+    const contentPatch: OfferUpdate =
+      !existing.is_import_locked && hasContentChanged(existing, content) ? content : {};
+    const categoryPatch: OfferUpdate =
+      !existing.is_import_locked && !existing.category_id && suggestedCategory
+        ? { category_id: suggestedCategory }
+        : {};
+
+    const patch = { ...statusPatch, ...contentPatch, ...categoryPatch };
+    if (Object.keys(patch).length > 0) {
+      updates.push({ id: existing.id, title: draft.title, patch });
+    }
   }
 
-  const { error } = await supabase.from("offers").insert({
-    ...row,
-    imported_at: now,
-    created_at: now,
-    rank_position: MANUAL_RANK_RESERVE + 1,
-  });
+  await insertOffers(supabase, inserts, result);
+  await updateOffers(supabase, updates, result);
 
-  if (error) {
-    throw new Error(`Could not create offer "${draft.title}": ${error.message}`);
+  for (const ids of chunk(seenIds, IMPORT_BATCH_SIZE)) {
+    await supabase.from("offers").update({ last_synced_at: now }).in("id", ids);
   }
 
-  return "created";
+  if (untracked > 0) {
+    result.errors.push(
+      `${untracked} erbjudanden hoppades över eftersom länken saknade ${network}-spårning.`,
+    );
+  }
+
+  return result;
 }
 
 export async function archiveMissingImportedOffers(
@@ -168,79 +277,50 @@ export async function archiveMissingImportedOffers(
     return 0;
   }
 
-  const { data: existingOffers, error } = await supabase
-    .from("offers")
-    .select("id, external_id")
-    .eq("affiliate_network", network)
-    .eq("is_imported", true)
-    .neq("status", "archived");
-
-  if (error || !existingOffers) {
-    throw new Error(error?.message ?? "Kunde inte läsa importerade erbjudanden för arkivering");
-  }
+  const existingOffers = await fetchAllPages<{
+    id: string;
+    external_id: string | null;
+    status: OfferStatus;
+  }>((from, to) =>
+    supabase
+      .from("offers")
+      .select("id, external_id, status")
+      .eq("affiliate_network", network)
+      .eq("is_imported", true)
+      .neq("status", "archived")
+      .range(from, to),
+  );
 
   const activeSet = new Set(activeExternalIds);
   const toArchive = existingOffers.filter(
     (offer) => offer.external_id && !activeSet.has(offer.external_id),
   );
 
-  if (toArchive.length === 0) {
-    return 0;
-  }
+  for (const status of ["published", "draft"] as const) {
+    const ids = toArchive.filter((offer) => offer.status === status).map((offer) => offer.id);
 
-  const now = new Date().toISOString();
-  const { error: archiveError } = await supabase
-    .from("offers")
-    .update({ status: "archived", updated_at: now, last_synced_at: now })
-    .in(
-      "id",
-      toArchive.map((offer) => offer.id),
-    );
+    for (const batch of chunk(ids, IMPORT_BATCH_SIZE)) {
+      const { error } = await supabase
+        .from("offers")
+        .update({ status: "archived", import_archived_status: status })
+        .in("id", batch);
 
-  if (archiveError) {
-    throw new Error(archiveError.message);
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
   }
 
   return toArchive.length;
 }
 
-async function batchUpdateRanks(
-  supabase: AdminClient,
-  updates: Array<{ id: string; rank_position: number }>,
-) {
-  const chunkSize = 50;
-  const now = new Date().toISOString();
-
-  for (let index = 0; index < updates.length; index += chunkSize) {
-    const chunk = updates.slice(index, index + chunkSize);
-    await Promise.all(
-      chunk.map((item) =>
-        supabase
-          .from("offers")
-          .update({ rank_position: item.rank_position, updated_at: now })
-          .eq("id", item.id),
-      ),
-    );
-  }
-}
-
 export async function recalculateImportedRanks(supabase: AdminClient, network: AffiliateNetwork) {
-  const { data: offers, error } = await supabase
-    .from("offers")
-    .select("id, discount_type, discount_value")
-    .eq("affiliate_network", network)
-    .eq("is_imported", true)
-    .eq("status", "published");
+  const { error } = await supabase.rpc("recalculate_imported_ranks", {
+    p_network: network,
+    p_first_rank: MANUAL_RANK_RESERVE + 1,
+  });
 
-  if (error || !offers) {
-    throw new Error(error?.message ?? "Kunde inte läsa erbjudanden för omrankning");
+  if (error) {
+    throw new Error(error.message);
   }
-
-  const sorted = [...offers].sort(compareImportedOffers);
-  const updates = sorted.map((offer, index) => ({
-    id: offer.id,
-    rank_position: MANUAL_RANK_RESERVE + 1 + index,
-  }));
-
-  await batchUpdateRanks(supabase, updates);
 }

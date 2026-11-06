@@ -27,7 +27,7 @@ const offerings = [
   },
   {
     title: "Affiliate-partnerskap",
-    body: "Vi spårar klick centralt via /go och behåller era befintliga affiliatelänkar.",
+    body: "Vi spårar klick centralt och kan använda era befintliga affiliatelänkar.",
   },
   {
     title: "Nyhetsbrevssamarbeten",

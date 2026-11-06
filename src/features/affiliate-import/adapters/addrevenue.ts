@@ -1,11 +1,13 @@
+import { currentMarket } from "@/shared/config/market";
+
 import { getAddrevenueConfig } from "../config";
-import { ensureDescription, ensureTitle, parseDiscountFromText } from "../parse-discount";
+import { ensureDescription, parseDiscountFromText, titleFromText } from "../parse-discount";
 import type { AffiliateAdapter, ImportedOfferDraft } from "../types";
 import {
   dedupeByExternalId,
   fetchJson,
   isExpired,
-  pickNumber,
+  pickId,
   pickString,
   readArray,
   readRecord,
@@ -14,118 +16,88 @@ import {
 
 type AddrevenueListResponse = {
   results?: unknown[];
+  meta?: { hasNextPage?: boolean };
 };
 
-type AdvertiserLookup = Map<
-  string,
-  {
-    name: string;
-    websiteUrl: string | null;
-    logoUrl: string | null;
-  }
->;
+type Advertiser = {
+  name: string;
+  websiteUrl: string | null;
+  logoUrl: string | null;
+};
+
+export type AddrevenueAdvertisers = Map<string, Advertiser>;
 
 const BASE_URL = "https://addrevenue.io/api/v2";
+const PAGE_SIZE = 200;
+const MAX_PAGES = 50;
 
-async function fetchAdvertisers(
-  apiToken: string,
-  channelId: string,
-): Promise<AdvertiserLookup> {
-  const response = await fetchJson<AddrevenueListResponse>(
-    `${BASE_URL}/advertisers?channelId=${encodeURIComponent(channelId)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-      },
-    },
-  );
+async function fetchAllPages(path: string, apiToken: string, channelId: string) {
+  const items: unknown[] = [];
 
-  const lookup: AdvertiserLookup = new Map();
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const response = await fetchJson<AddrevenueListResponse>(
+      `${BASE_URL}/${path}?channelId=${encodeURIComponent(channelId)}&limit=${PAGE_SIZE}&page=${page}`,
+      { headers: { Authorization: `Bearer ${apiToken}` } },
+    );
 
-  for (const item of readArray(response.results)) {
-    const record = readRecord(item);
-    if (!record) {
-      continue;
+    items.push(...readArray(response.results));
+
+    if (!response.meta?.hasNextPage) {
+      break;
     }
-
-    const id = pickString(record, ["id", "advertiserId"]);
-    if (!id) {
-      continue;
-    }
-
-    lookup.set(id, {
-      name: pickString(record, ["name", "advertiserName", "brandName"]) || `Butik ${id}`,
-      websiteUrl: pickString(record, ["url", "websiteUrl", "website"]) || null,
-      logoUrl: pickString(record, ["logo", "logoUrl"]) || null,
-    });
   }
 
-  return lookup;
+  return items;
 }
 
-function mapCampaign(
+export function mapAddrevenueCampaign(
   record: Record<string, unknown>,
-  advertisers: AdvertiserLookup,
+  advertisers: AddrevenueAdvertisers,
 ): ImportedOfferDraft | null {
-  const externalId = pickString(record, ["id", "campaignId"]);
-  const affiliateUrl = pickString(record, ["trackingLink", "trackingUrl", "url"]);
-  const advertiserId = String(
-    pickNumber(record, ["advertiserId", "advertiserID"]) ??
-      pickString(record, ["advertiserId", "advertiserID"]) ??
-      "",
-  );
+  const externalId = pickId(record, ["id"]);
+  // Only present for advertisers with an approved relation to the channel.
+  const affiliateUrl = pickString(record, ["trackingLink"]);
+  const advertiserId = pickId(record, ["advertiserId"]);
+  const markets = readArray(record.markets).map(String);
+  const endsAt = toIsoDate(record.validTo);
 
-  if (!externalId || !affiliateUrl || !advertiserId) {
+  if (
+    !externalId ||
+    !affiliateUrl ||
+    !advertiserId ||
+    pickString(record, ["status"]) === "ended" ||
+    (markets.length > 0 && !markets.includes(currentMarket.code)) ||
+    isExpired(endsAt)
+  ) {
     return null;
   }
 
   const advertiser = advertisers.get(advertiserId);
-  const title = ensureTitle(
-    pickString(record, ["title", "name", "headline"]),
-    pickString(record, ["description"]) || `${advertiser?.name ?? "Butik"} erbjudande`,
-  );
-  const description = ensureDescription(
-    pickString(record, ["description", "text", "body"]),
-    title,
-  );
-  const discountCode = pickString(record, ["discountCode", "code", "couponCode"]) || null;
-  const discount = parseDiscountFromText(
-    title,
-    description,
-    pickString(record, ["discount", "discountText"]),
-  );
-  const endsAt = toIsoDate(
-    pickString(record, ["endDate", "endsAt", "stop", "validTo", "expiresAt"]),
-  );
-
-  if (isExpired(endsAt)) {
-    return null;
-  }
+  const storeName =
+    advertiser?.name ?? (pickString(record, ["advertiserName"]) || `Butik ${advertiserId}`);
+  const text = pickString(record, ["description"]);
+  const title = titleFromText(text, `${storeName} erbjudande`);
+  const discountCode = pickString(record, ["discountCode"]) || null;
 
   return {
     externalId,
     network: "addrevenue",
     title,
-    description,
+    description: ensureDescription(text, title),
     store: {
       externalId: advertiserId,
-      name:
-        advertiser?.name ??
-        (pickString(record, ["advertiserName"]) || `Butik ${advertiserId}`),
-      websiteUrl:
-        advertiser?.websiteUrl ?? (pickString(record, ["advertiserUrl"]) || null),
+      name: storeName,
+      websiteUrl: advertiser?.websiteUrl ?? (pickString(record, ["advertiserUrl"]) || null),
       logoUrl: advertiser?.logoUrl ?? null,
+      affiliateUrl,
     },
     redemptionType: discountCode ? "discount_code" : "direct_link",
-    discountType: discount.discountType,
-    discountValue: discount.discountValue,
+    ...parseDiscountFromText(text),
     discountCode,
     affiliateUrl,
-    terms: pickString(record, ["terms", "conditions"]) || null,
-    imageUrl: pickString(record, ["imageUrl", "image", "bannerUrl"]) || null,
-    startsAt: toIsoDate(
-      pickString(record, ["startDate", "startsAt", "start", "validFrom"]),
-    ),
+    terms: pickString(record, ["terms"]) || null,
+    imageUrl: null,
+    startsAt: toIsoDate(record.validFrom),
     endsAt,
   };
 }
@@ -141,20 +113,24 @@ export const addrevenueAdapter: AffiliateAdapter = {
       return [];
     }
 
-    const advertisers = await fetchAdvertisers(config.apiToken, config.channelId);
-    const response = await fetchJson<AddrevenueListResponse>(
-      `${BASE_URL}/campaigns?channelId=${encodeURIComponent(config.channelId)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${config.apiToken}`,
-        },
-      },
-    );
+    const advertisers: AddrevenueAdvertisers = new Map();
+    for (const item of await fetchAllPages("advertisers", config.apiToken, config.channelId)) {
+      const record = readRecord(item);
+      const id = record ? pickId(record, ["id"]) : "";
+      if (record && id) {
+        advertisers.set(id, {
+          name: pickString(record, ["displayName", "name"]) || `Butik ${id}`,
+          websiteUrl: pickString(record, ["url"]) || null,
+          logoUrl: pickString(record, ["logoImageFilename"]) || null,
+        });
+      }
+    }
 
-    const offers = readArray(response.results)
+    const campaigns = await fetchAllPages("campaigns", config.apiToken, config.channelId);
+    const offers = campaigns
       .map((item) => {
         const record = readRecord(item);
-        return record ? mapCampaign(record, advertisers) : null;
+        return record ? mapAddrevenueCampaign(record, advertisers) : null;
       })
       .filter((offer): offer is ImportedOfferDraft => offer !== null);
 

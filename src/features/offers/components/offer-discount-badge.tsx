@@ -2,22 +2,17 @@ import { TicketPercent } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import { formatDiscount } from "../format";
-import type { DiscountType } from "../types";
+import { formatDealHeadline } from "../format";
+import type { Offer } from "../types";
 
 type OfferDiscountBadgeProps = {
-  discountType: DiscountType;
-  discountValue: number;
+  offer: Pick<Offer, "discount_type" | "discount_value" | "is_up_to" | "deal_label">;
   className?: string;
 };
 
-// Prominent, consistent discount indicator shown next to the coupon code and
-// CTA so the saving is always immediately clear.
-export function OfferDiscountBadge({
-  discountType,
-  discountValue,
-  className,
-}: OfferDiscountBadgeProps) {
+// Prominent, consistent deal indicator shown next to the coupon code and CTA so
+// the saving is always immediately clear. Never shows a figure the offer lacks.
+export function OfferDiscountBadge({ offer, className }: OfferDiscountBadgeProps) {
   return (
     <span
       className={cn(
@@ -28,7 +23,7 @@ export function OfferDiscountBadge({
       <span aria-hidden className="deal-save-shine" />
       <TicketPercent className="relative size-4 shrink-0" />
       <span data-numeric className="relative">
-        Spara {formatDiscount(discountType, discountValue)}
+        {formatDealHeadline(offer)}
       </span>
     </span>
   );

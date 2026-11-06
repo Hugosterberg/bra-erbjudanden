@@ -492,6 +492,11 @@ export function ImportDashboard({
                 svarar korrekt. Tomma svar arkiverar aldrig befintliga erbjudanden.
               </p>
               <p>
+                Nya erbjudanden hamnar som utkast tills du har granskat dem under Erbjudanden,
+                om inte AFFILIATE_IMPORT_AUTO_PUBLISH=true är satt. Länkar utan nätverkets
+                spårning hoppas över, och erbjudanden du har redigerat skrivs inte över.
+              </p>
+              <p>
                 Manuellt skapade erbjudanden behåller ranking 1–20. Importerade rankas från 21
                 efter rabattstorlek inom respektive nätverk.
               </p>

@@ -1,3 +1,5 @@
+import { currentMarket } from "@/shared/config/market";
+
 import { getTradedoublerConfig } from "../config";
 import { ensureDescription, ensureTitle, parseDiscountFromText } from "../parse-discount";
 import type { AffiliateAdapter, ImportedOfferDraft } from "../types";
@@ -5,6 +7,7 @@ import {
   dedupeByExternalId,
   fetchJson,
   isExpired,
+  pickId,
   pickNumber,
   pickString,
   readArray,
@@ -13,25 +16,46 @@ import {
 } from "./utils";
 
 const BASE_URL = "https://api.tradedoubler.com/1.0/vouchers.json";
+const PAGE_SIZE = 500;
+const MAX_PAGES = 20;
 
-type TradedoublerResponse = {
-  vouchers?: unknown[];
-};
+// voucherTypeId per the Vouchers API: 1 voucher, 2 discount, 4 free shipping.
+const VOUCHER_TYPE_CODE = 1;
+const VOUCHER_TYPE_DISCOUNT = 2;
+const VOUCHER_TYPE_FREE_SHIPPING = 4;
 
-function mapVoucher(record: Record<string, unknown>): ImportedOfferDraft | null {
-  const externalId = String(pickNumber(record, ["id"]) ?? pickString(record, ["id"]));
-  const programId = String(
-    pickNumber(record, ["programId"]) ??
-      pickNumber(readRecord(record.program) ?? {}, ["id"]) ??
-      "",
-  );
-  const programName =
-    pickString(readRecord(record.program) ?? {}, ["name"]) ||
-    pickString(record, ["programName"]) ||
-    `Program ${programId}`;
-  const affiliateUrl =
-    pickString(record, ["landingUrl", "defaultTracker", "trackingUrl"]) || "";
-  const code = pickString(record, ["code"]) || null;
+function readDate(record: Record<string, unknown>, key: string) {
+  const milliseconds = typeof record[key] === "number" ? (record[key] as number) : null;
+  return milliseconds ? new Date(milliseconds).toISOString() : toIsoDate(record[key]);
+}
+
+function resolveDiscount(record: Record<string, unknown>, title: string, description: string) {
+  const voucherType = pickNumber(record, ["voucherTypeId"]);
+  const amount = pickNumber(record, ["discountAmount"]);
+
+  if (voucherType === VOUCHER_TYPE_DISCOUNT && amount !== null && amount > 0) {
+    return {
+      discountType: record.isPercentage === true ? ("percentage" as const) : ("fixed_amount" as const),
+      discountValue: amount,
+      isUpTo: false,
+      dealLabel: null,
+    };
+  }
+
+  const parsed = parseDiscountFromText(title, description);
+  return voucherType === VOUCHER_TYPE_FREE_SHIPPING && parsed.discountType === null
+    ? { ...parsed, dealLabel: "Fri frakt" }
+    : parsed;
+}
+
+export function mapTradedoublerVoucher(record: Record<string, unknown>): ImportedOfferDraft | null {
+  const externalId = pickId(record, ["id"]);
+  const programId = pickId(record, ["programId"]);
+  const programName = pickString(record, ["programName"]) || `Program ${programId}`;
+  // landingUrl is the merchant's own page; defaultTrackUri is what pays.
+  const affiliateUrl = pickString(record, ["defaultTrackUri"]);
+  const voucherType = pickNumber(record, ["voucherTypeId"]);
+  const code = voucherType === VOUCHER_TYPE_CODE ? pickString(record, ["code"]) || null : null;
   const title = ensureTitle(
     pickString(record, ["title", "shortDescription"]),
     code ? `${programName} rabattkod` : `${programName} erbjudande`,
@@ -40,15 +64,7 @@ function mapVoucher(record: Record<string, unknown>): ImportedOfferDraft | null 
     pickString(record, ["description", "shortDescription"]) || title,
     title,
   );
-  const discount = parseDiscountFromText(title, description);
-  const endDateMs = pickNumber(record, ["endDate"]);
-  const endsAt =
-    toIsoDate(pickString(record, ["endDate", "endDateTime"])) ??
-    (endDateMs ? new Date(endDateMs).toISOString() : null);
-  const startDateMs = pickNumber(record, ["startDate"]);
-  const startsAt =
-    toIsoDate(pickString(record, ["startDate", "startDateTime"])) ??
-    (startDateMs ? new Date(startDateMs).toISOString() : null);
+  const endsAt = readDate(record, "endDate");
 
   if (!externalId || !affiliateUrl || !programId || isExpired(endsAt)) {
     return null;
@@ -62,17 +78,18 @@ function mapVoucher(record: Record<string, unknown>): ImportedOfferDraft | null 
     store: {
       externalId: programId,
       name: programName,
-      websiteUrl: affiliateUrl,
-      logoUrl: null,
+      websiteUrl: null,
+      logoUrl: pickString(record, ["logoPath"]) || null,
+      // A voucher with a landing page would send "Besök butik" to that page.
+      affiliateUrl: pickString(record, ["landingUrl"]) ? null : affiliateUrl,
     },
     redemptionType: code ? "discount_code" : "direct_link",
-    discountType: discount.discountType,
-    discountValue: discount.discountValue,
+    ...resolveDiscount(record, title, description),
     discountCode: code,
     affiliateUrl,
     terms: pickString(record, ["publisherInformation"]) || null,
     imageUrl: null,
-    startsAt,
+    startsAt: readDate(record, "startDate"),
     endsAt,
   };
 }
@@ -88,17 +105,29 @@ export const tradedoublerAdapter: AffiliateAdapter = {
       return [];
     }
 
-    const response = await fetchJson<TradedoublerResponse>(
-      `${BASE_URL}?token=${encodeURIComponent(config.token)}&dateOutputFormat=iso8601`,
-    );
+    const allOffers: ImportedOfferDraft[] = [];
 
-    const offers = readArray(response.vouchers ?? response)
-      .map((item) => {
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
+      // Filters are matrix parameters on this API; only the token is a query key.
+      const filters = `;dateOutputFormat=iso8601;languageId=${currentMarket.languageCode};pageSize=${PAGE_SIZE};page=${page}`;
+      const response = await fetchJson<unknown>(
+        `${BASE_URL}${filters}?token=${encodeURIComponent(config.token)}`,
+      );
+
+      const items = readArray(response);
+      for (const item of items) {
         const record = readRecord(item);
-        return record ? mapVoucher(record) : null;
-      })
-      .filter((offer): offer is ImportedOfferDraft => offer !== null);
+        const offer = record ? mapTradedoublerVoucher(record) : null;
+        if (offer) {
+          allOffers.push(offer);
+        }
+      }
 
-    return dedupeByExternalId(offers);
+      if (items.length < PAGE_SIZE) {
+        break;
+      }
+    }
+
+    return dedupeByExternalId(allOffers);
   },
 };

@@ -61,8 +61,10 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
       store_id: offer?.store_id ?? "",
       category_id: offer?.category_id ?? "",
       redemption_type: offer?.redemption_type ?? (offer?.discount_code ? "discount_code" : "direct_link"),
-      discount_type: offer?.discount_type ?? "percentage",
-      discount_value: offer?.discount_value ?? 10,
+      discount_type: offer ? (offer.discount_type ?? "none") : "percentage",
+      discount_value: offer?.discount_value ?? undefined,
+      is_up_to: offer?.is_up_to ?? false,
+      deal_label: offer?.deal_label ?? "",
       discount_code: offer?.discount_code ?? "",
       affiliate_url: offer?.affiliate_url ?? "",
       terms: offer?.terms ?? "",
@@ -254,6 +256,7 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
                 <SelectContent>
                   <SelectItem value="percentage">Procent</SelectItem>
                   <SelectItem value="fixed_amount">Kronor</SelectItem>
+                  <SelectItem value="none">Ingen rabatt i siffror</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -267,6 +270,20 @@ export function OfferForm({ offer, stores, categories }: OfferFormProps) {
             <p className="text-sm text-destructive">{errors.discount_value.message}</p>
           ) : null}
         </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor="deal_label">Etikett utan rabatt i siffror (valfritt)</Label>
+          <Input id="deal_label" placeholder="Fri frakt, 3 för 2 ..." {...form.register("deal_label")} />
+          {errors.deal_label ? (
+            <p className="text-sm text-destructive">{errors.deal_label.message}</p>
+          ) : null}
+        </div>
+        <label className="flex items-center gap-2 self-end pb-2 text-sm">
+          <input type="checkbox" {...form.register("is_up_to")} />
+          Rabatten gäller &quot;upp till&quot; värdet
+        </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

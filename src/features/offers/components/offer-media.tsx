@@ -6,6 +6,8 @@ type OfferMediaProps = {
   imageUrl?: string | null;
   title: string;
   discountLabel: string;
+  /** Only numeric discounts read as "rabatt"; labels like "Fri frakt" stand alone. */
+  showDiscountCaption?: boolean;
   className?: string;
   chipTextClassName?: string;
 };
@@ -17,6 +19,7 @@ export function OfferMedia({
   imageUrl,
   title,
   discountLabel,
+  showDiscountCaption = true,
   className,
   chipTextClassName,
 }: OfferMediaProps) {
@@ -51,7 +54,9 @@ export function OfferMedia({
       <span className={cn("font-semibold leading-none", chipTextClassName ?? "text-xl")}>
         {discountLabel}
       </span>
-      <span className="mt-1 text-[10px] font-medium uppercase tracking-wide">rabatt</span>
+      {showDiscountCaption ? (
+        <span className="mt-1 text-[10px] font-medium uppercase tracking-wide">rabatt</span>
+      ) : null}
     </div>
   );
 }

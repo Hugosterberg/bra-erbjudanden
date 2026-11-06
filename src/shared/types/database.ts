@@ -24,6 +24,7 @@ export type Database = {
           seo_intro: string | null;
           affiliate_network: Database["public"]["Enums"]["affiliate_network"] | null;
           external_id: string | null;
+          market: string;
           created_at: string;
           updated_at: string;
         };
@@ -41,6 +42,7 @@ export type Database = {
           seo_intro?: string | null;
           affiliate_network?: Database["public"]["Enums"]["affiliate_network"] | null;
           external_id?: string | null;
+          market?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,6 +75,11 @@ export type Database = {
       };
       offers: {
         Row: {
+          deal_label: string | null;
+          is_up_to: boolean;
+          is_import_locked: boolean;
+          import_archived_status: "draft" | "published" | "archived" | null;
+          market: string;
           id: string;
           title: string;
           slug: string;
@@ -80,8 +87,8 @@ export type Database = {
           store_id: string;
           category_id: string | null;
           redemption_type: "discount_code" | "direct_link";
-          discount_type: "percentage" | "fixed_amount";
-          discount_value: number;
+          discount_type: "percentage" | "fixed_amount" | null;
+          discount_value: number | null;
           discount_code: string | null;
           affiliate_url: string;
           terms: string | null;
@@ -112,8 +119,13 @@ export type Database = {
           store_id: string;
           category_id?: string | null;
           redemption_type?: "discount_code" | "direct_link";
-          discount_type: "percentage" | "fixed_amount";
-          discount_value: number;
+          deal_label?: string | null;
+          is_up_to?: boolean;
+          is_import_locked?: boolean;
+          import_archived_status?: "draft" | "published" | "archived" | null;
+          market?: string;
+          discount_type?: "percentage" | "fixed_amount" | null;
+          discount_value?: number | null;
           discount_code?: string | null;
           affiliate_url: string;
           terms?: string | null;
@@ -157,7 +169,9 @@ export type Database = {
       click_events: {
         Row: {
           id: string;
-          offer_id: string;
+          offer_id: string | null;
+          click_id: string | null;
+          network: Database["public"]["Enums"]["affiliate_network"] | null;
           store_id: string | null;
           click_type: "discount_code" | "website";
           clicked_at: string;
@@ -167,7 +181,9 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          offer_id: string;
+          offer_id?: string | null;
+          click_id?: string | null;
+          network?: Database["public"]["Enums"]["affiliate_network"] | null;
           store_id?: string | null;
           click_type?: "discount_code" | "website";
           clicked_at?: string;
@@ -197,7 +213,7 @@ export type Database = {
         Row: {
           id: string;
           email: string;
-          status: "active" | "unsubscribed";
+          status: "pending" | "active" | "unsubscribed";
           source: string;
           consent_given_at: string;
           consent_text: string;
@@ -205,13 +221,18 @@ export type Database = {
           signup_count: number;
           signup_sources: string[];
           interests: string[];
+          confirmation_token: string | null;
+          unsubscribe_token: string;
+          confirmation_sent_at: string | null;
+          confirmed_at: string | null;
+          unsubscribed_at: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           email: string;
-          status?: "active" | "unsubscribed";
+          status?: "pending" | "active" | "unsubscribed";
           source?: string;
           consent_given_at?: string;
           consent_text?: string;
@@ -219,6 +240,11 @@ export type Database = {
           signup_count?: number;
           signup_sources?: string[];
           interests?: string[];
+          confirmation_token?: string | null;
+          unsubscribe_token?: string;
+          confirmation_sent_at?: string | null;
+          confirmed_at?: string | null;
+          unsubscribed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -433,6 +459,124 @@ export type Database = {
           },
         ];
       };
+      store_affiliate_programs: {
+        Row: {
+          id: string;
+          store_id: string;
+          network: Database["public"]["Enums"]["affiliate_network"];
+          external_id: string;
+          tracking_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          network: Database["public"]["Enums"]["affiliate_network"];
+          external_id: string;
+          tracking_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["store_affiliate_programs"]["Insert"]>;
+        Relationships: [];
+      };
+      network_transactions: {
+        Row: {
+          id: string;
+          network: Database["public"]["Enums"]["affiliate_network"];
+          external_id: string;
+          program_external_id: string | null;
+          click_ref: string | null;
+          click_id: string | null;
+          store_id: string | null;
+          offer_id: string | null;
+          status: "pending" | "approved" | "rejected" | "paid";
+          commission: number;
+          order_value: number | null;
+          currency: string;
+          transaction_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          network: Database["public"]["Enums"]["affiliate_network"];
+          external_id: string;
+          program_external_id?: string | null;
+          click_ref?: string | null;
+          click_id?: string | null;
+          store_id?: string | null;
+          offer_id?: string | null;
+          status: "pending" | "approved" | "rejected" | "paid";
+          commission?: number;
+          order_value?: number | null;
+          currency?: string;
+          transaction_at: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["network_transactions"]["Insert"]>;
+        Relationships: [];
+      };
+      network_transaction_sync_runs: {
+        Row: {
+          id: string;
+          network: Database["public"]["Enums"]["affiliate_network"];
+          status: "completed" | "failed";
+          fetched: number;
+          error: string | null;
+          ran_at: string;
+        };
+        Insert: {
+          id?: string;
+          network: Database["public"]["Enums"]["affiliate_network"];
+          status: "completed" | "failed";
+          fetched?: number;
+          error?: string | null;
+          ran_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["network_transaction_sync_runs"]["Insert"]>;
+        Relationships: [];
+      };
+      newsletter_campaigns: {
+        Row: {
+          id: string;
+          subject: string;
+          intro: string | null;
+          offer_ids: string[];
+          status: "draft" | "sending" | "sent";
+          sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          subject: string;
+          intro?: string | null;
+          offer_ids?: string[];
+          status?: "draft" | "sending" | "sent";
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["newsletter_campaigns"]["Insert"]>;
+        Relationships: [];
+      };
+      newsletter_deliveries: {
+        Row: {
+          campaign_id: string;
+          subscriber_id: string;
+          sent_at: string;
+        };
+        Insert: {
+          campaign_id: string;
+          subscriber_id: string;
+          sent_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["newsletter_deliveries"]["Insert"]>;
+        Relationships: [];
+      };
       discovery_events: {
         Row: {
           id: string;
@@ -458,6 +602,38 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      recalculate_imported_ranks: {
+        Args: {
+          p_network: Database["public"]["Enums"]["affiliate_network"];
+          p_first_rank: number;
+        };
+        Returns: undefined;
+      };
+      purge_tracking_data: {
+        Args: { p_identifier_days: number; p_event_days: number };
+        Returns: {
+          clicks_anonymized: number;
+          events_anonymized: number;
+          events_deleted: number;
+        }[];
+      };
+      consume_rate_limit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number };
+        Returns: boolean;
+      };
+      revenue_summary: {
+        Args: { p_dimension: string; p_since: string };
+        Returns: {
+          dimension_key: string | null;
+          dimension_label: string | null;
+          currency: string;
+          clicks: number;
+          transactions: number;
+          pending_commission: number;
+          approved_commission: number;
+          rejected_commission: number;
+        }[];
+      };
       register_deal_subscriber: {
         Args: {
           p_email: string;
@@ -488,7 +664,7 @@ export type Database = {
       discount_type: "percentage" | "fixed_amount";
       redemption_type: "discount_code" | "direct_link";
       entity_status: "active" | "inactive" | "archived";
-      subscriber_status: "active" | "unsubscribed";
+      subscriber_status: "pending" | "active" | "unsubscribed";
       click_type: "discount_code" | "website";
       affiliate_network:
         | "addrevenue"

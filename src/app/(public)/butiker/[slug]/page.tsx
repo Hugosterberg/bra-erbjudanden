@@ -9,11 +9,13 @@ import { findPublishedArticles } from "@/features/editorial/queries";
 import { OfferGrid } from "@/features/offers/components/offer-grid";
 import { OfferList } from "@/features/offers/components/offer-list";
 import { compareByDiscount, formatOfferValidity } from "@/features/offers/format";
-import { findActiveOffers } from "@/features/offers/queries";
+import { findActiveOfferSummaries, findActiveOffers } from "@/features/offers/queries";
 import { RelatedContent } from "@/features/related/components/related-content";
 import { rankSimilarStores } from "@/features/related/related";
 import { resolveStoreOutboundUrl } from "@/features/stores/outbound";
 import { findActiveStoreBySlug, findActiveStores } from "@/features/stores/queries";
+import { detectNetworkFromUrl } from "@/features/tracking/click-reference";
+import { currentMarket } from "@/shared/config/market";
 import { hasIndexableContent } from "@/shared/lib/indexing";
 import {
   createBreadcrumbJsonLd,
@@ -25,6 +27,12 @@ import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 import { FaqSection } from "@/shared/ui/faq-section";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StoreLogo } from "@/shared/ui/store-logo";
+
+export const revalidate = 300;
+
+function formatCurrentMonth(now = new Date()) {
+  return new Intl.DateTimeFormat(currentMarket.locale, { month: "long", year: "numeric" }).format(now);
+}
 
 type StorePageProps = {
   params: Promise<{ slug: string }>;
@@ -48,9 +56,18 @@ export async function generateMetadata({ params }: StorePageProps) {
     findPublishedArticles({ storeId: store.id, limit: 6 }),
   ]);
 
+  const codeCount = offers.filter((offer) => offer.discount_code).length;
+  const headline = codeCount > 0 ? `Rabattkod ${store.name}` : `${store.name} erbjudanden`;
+  const counts =
+    offers.length > 0
+      ? `${offers.length} aktiva erbjudanden${codeCount > 0 ? `, varav ${codeCount} med rabattkod` : ""}. `
+      : "";
+
   return createMetadata({
-    title: `${store.name} rabattkoder & erbjudanden`,
-    description: `Aktuella rabatter, rabattkoder och kampanjer från ${store.name}. ${store.seo_intro ?? store.description ?? "Handplockade erbjudanden – alltid aktiva."}`,
+    title: `${headline} – ${formatCurrentMonth()}`,
+    description: `${counts}Aktuella rabatter och kampanjer från ${store.name}. ${store.seo_intro ?? store.description ?? ""}`
+      .trim()
+      .slice(0, 300),
     path: `/butiker/${slug}`,
     index: hasIndexableContent({
       offerCount: offers.length,
@@ -69,21 +86,23 @@ export default async function StorePage({ params }: StorePageProps) {
     notFound();
   }
 
-  const [allStores, allOffers, articles] = await Promise.all([
+  const [allStores, offers, summaries, articles] = await Promise.all([
     findActiveStores(),
-    findActiveOffers(),
+    findActiveOffers({ storeSlug: slug }),
+    findActiveOfferSummaries(),
     findPublishedArticles({ storeId: store.id, limit: 6 }),
   ]);
-  const offers = allOffers.filter((offer) => offer.store?.id === store.id);
 
   const codes = offers.filter((offer) => offer.redemption_type === "discount_code");
   const campaigns = offers.filter((offer) => offer.redemption_type === "direct_link");
   const strongest = offers.length ? [...offers].sort(compareByDiscount)[0] : null;
   const lastVerified = offers
-    .flatMap((offer) => {
-      const verified = offer.last_verified_at ?? offer.last_synced_at;
-      return verified ? [verified] : [];
-    })
+    .flatMap((offer) => (offer.last_verified_at ? [offer.last_verified_at] : []))
+    .sort()
+    .at(-1);
+  // The date a visitor sees must reflect the offers, not today's date.
+  const lastUpdated = offers
+    .flatMap((offer) => [offer.updated_at, ...(offer.last_synced_at ? [offer.last_synced_at] : [])])
     .sort()
     .at(-1);
   const relatedCategories = Array.from(
@@ -94,15 +113,15 @@ export default async function StorePage({ params }: StorePageProps) {
     ).values(),
   );
   const storeCategoryIds = new Map<string, string[]>();
-  for (const item of allOffers) {
-    if (!item.store?.id || !item.category?.id) {
+  for (const item of summaries) {
+    if (!item.category_id) {
       continue;
     }
-    const current = storeCategoryIds.get(item.store.id) ?? [];
-    if (!current.includes(item.category.id)) {
-      current.push(item.category.id);
+    const current = storeCategoryIds.get(item.store_id) ?? [];
+    if (!current.includes(item.category_id)) {
+      current.push(item.category_id);
     }
-    storeCategoryIds.set(item.store.id, current);
+    storeCategoryIds.set(item.store_id, current);
   }
 
   const similarStores = rankSimilarStores({
@@ -120,12 +139,12 @@ export default async function StorePage({ params }: StorePageProps) {
     {
       question: `Är ${store.name}-erbjudandena aktuella?`,
       answer:
-        "Vi visar bara publicerade erbjudanden som fortfarande ligger inom sitt datumfönster. Utgångna koder tas bort från den aktiva listan.",
+        "Vi visar bara erbjudanden inom sin giltighetstid och tar bort koder som gått ut. Kontrollera alltid priset i kassan, eftersom butiken kan ändra villkoren.",
     },
     {
       question: `Får braerbjudanden.se provision om jag handlar hos ${store.name}?`,
       answer:
-        "Ja, affiliatelänkar kan förekomma. Det kostar inget extra för dig. Sponsrade placeringar märks separat och påverkar inte Deal Score.",
+        "Ja, länkar till butiker kan ge oss provision, och det kostar inget extra för dig. Sponsrade placeringar märks separat och varken de eller provisionen påverkar Deal Score.",
     },
   ];
 
@@ -135,8 +154,8 @@ export default async function StorePage({ params }: StorePageProps) {
   return (
     <>
       <PageHeader
-        eyebrow="Butik"
-        title={store.name}
+        eyebrow={lastUpdated ? `Uppdaterad ${formatOfferValidity(lastUpdated)}` : "Butik"}
+        title={codes.length > 0 ? `Rabattkod ${store.name}` : `Erbjudanden från ${store.name}`}
         description={store.seo_intro ?? store.description ?? "Aktuella erbjudanden och kampanjer."}
         icon={Store}
         backLink={{ href: "/butiker", label: "Tillbaka till alla butiker" }}
@@ -158,22 +177,30 @@ export default async function StorePage({ params }: StorePageProps) {
             <p className="mt-1 text-lg font-semibold tracking-tight">{store.name}</p>
             {lastVerified ? (
               <p className="mt-1 text-sm text-muted-foreground">
-                Senast verifierad {formatOfferValidity(lastVerified)}
+                Senast kontrollerad av oss {formatOfferValidity(lastVerified)}
               </p>
             ) : null}
           </div>
           {outboundUrl ? (
-            <Button variant="outline" asChild>
-              <Link
-                href={`/go/butik/${store.slug}`}
-                rel="sponsored nofollow noopener"
-                target="_blank"
-              >
-                Besök {store.name}
-                <ExternalLink className="size-4" />
-                <span className="sr-only">(öppnas i nytt fönster)</span>
-              </Link>
-            </Button>
+            <div className="grid gap-1">
+              <Button variant="outline" asChild>
+                {/* A plain anchor, as next/link would prefetch the tracking route. */}
+                <a
+                  href={`/go/butik/${store.slug}`}
+                  rel="sponsored nofollow noopener"
+                  target="_blank"
+                >
+                  Besök {store.name}
+                  <ExternalLink className="size-4" />
+                  <span className="sr-only">(öppnas i nytt fönster)</span>
+                </a>
+              </Button>
+              {detectNetworkFromUrl(outboundUrl) ? (
+                <p className="text-center text-[11px] leading-4 text-muted-foreground">
+                  Annonslänk – vi kan få provision.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

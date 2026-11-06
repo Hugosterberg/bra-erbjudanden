@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { siteConfig } from "@/shared/config/site";
@@ -45,6 +46,9 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 export default function RootLayout({
@@ -70,6 +74,7 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-full flex-col">
         <TooltipProvider>{children}</TooltipProvider>
+        <Analytics />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={createJsonLd({
