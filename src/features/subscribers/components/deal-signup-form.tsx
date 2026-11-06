@@ -89,7 +89,7 @@ export function DealSignupForm({ source = "homepage", showInterests = true }: De
       {showInterests ? (
         <fieldset className="space-y-2">
           <legend className="text-xs font-medium text-muted-foreground">
-            Intressen (valfritt) – används när mailutskick kopplas på
+            Intressen (valfritt)
           </legend>
           <div className="flex flex-wrap gap-2">
             {NEWSLETTER_INTERESTS.map((interest) => (
@@ -113,8 +113,12 @@ export function DealSignupForm({ source = "homepage", showInterests = true }: De
         </p>
       ) : (
         <p className="text-xs leading-5 text-muted-foreground">
-          Genom att skriva upp dig samtycker du till mailutskick med
-          erbjudanden och kampanjer från braerbjudanden.se.
+          Genom att skriva upp dig samtycker du till mailutskick med erbjudanden och kampanjer
+          från braerbjudanden.se. Läs mer i vår{" "}
+          <a href="/integritetspolicy" className="underline underline-offset-2">
+            integritetspolicy
+          </a>
+          .
         </p>
       )}
     </form>

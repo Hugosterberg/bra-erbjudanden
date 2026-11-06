@@ -63,7 +63,11 @@ export default async function AdminSubscribersPage() {
                         <Badge
                           variant={subscriber.status === "active" ? "default" : "secondary"}
                         >
-                          {subscriber.status === "active" ? "Aktiv" : "Avregistrerad"}
+                          {subscriber.status === "active"
+                            ? "Aktiv"
+                            : subscriber.status === "pending"
+                              ? "Väntar på bekräftelse"
+                              : "Avregistrerad"}
                         </Badge>
                       </TableCell>
                       <TableCell>{subscriber.source}</TableCell>
