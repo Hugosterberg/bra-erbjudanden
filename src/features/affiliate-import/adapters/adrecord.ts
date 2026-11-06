@@ -70,7 +70,8 @@ function mapCouponOrCampaign(
   hasCode: boolean,
 ): ImportedOfferDraft | null {
   const externalId = String(pickNumber(record, ["id"]) ?? pickString(record, ["id"]));
-  const affiliateUrl = pickString(record, ["trackingUrl", "url"]);
+  // A plain "url" would earn nothing, so only the tracking field is accepted.
+  const affiliateUrl = pickString(record, ["trackingUrl"]);
   const { programId, programName } = readProgram(record);
 
   if (!externalId || !affiliateUrl || !programId) {
@@ -105,12 +106,12 @@ function mapCouponOrCampaign(
       externalId: programId,
       name: program?.name ?? programName,
       websiteUrl:
-        program?.websiteUrl ?? (pickString(record, ["url"]) || null),
+        program?.websiteUrl ?? null,
       logoUrl: program?.logoUrl ?? null,
+      affiliateUrl,
     },
     redemptionType: discountCode ? "discount_code" : "direct_link",
-    discountType: discount.discountType,
-    discountValue: discount.discountValue,
+    ...discount,
     discountCode,
     affiliateUrl,
     terms: null,

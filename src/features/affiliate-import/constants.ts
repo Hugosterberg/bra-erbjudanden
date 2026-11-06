@@ -15,3 +15,9 @@ export const IMPORT_CRON_SCHEDULE = "0 1,13 * * *";
 
 export const IMPORT_SCHEDULE_LABEL =
   "Schemalagd import två gånger per dygn: 02:00 och 14:00 svensk tid (vintertid, +1 timme sommartid).";
+
+// Stop starting new networks before the 300 s function limit is reached, so a
+// run ends cleanly instead of being killed and left looking "running".
+export const IMPORT_TIME_BUDGET_MS = 240_000;
+
+export const IMPORT_BATCH_SIZE = 200;

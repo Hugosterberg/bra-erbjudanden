@@ -1,3 +1,5 @@
+import { currentMarket } from "@/shared/config/market";
+
 import { getAwinConfig } from "../config";
 import { ensureDescription, ensureTitle, parseDiscountFromText } from "../parse-discount";
 import type { AffiliateAdapter, ImportedOfferDraft } from "../types";
@@ -5,7 +7,7 @@ import {
   dedupeByExternalId,
   fetchJson,
   isExpired,
-  pickNumber,
+  pickId,
   pickString,
   readArray,
   readRecord,
@@ -13,43 +15,31 @@ import {
 } from "./utils";
 
 const BASE_URL = "https://api.awin.com";
+// The Offers API rejects page sizes outside 10-200.
+const PAGE_SIZE = 200;
+const MAX_PAGES = 50;
 
 type AwinPromotionResponse = {
   data?: unknown[];
-  promotions?: unknown[];
 };
 
-function mapPromotion(record: Record<string, unknown>): ImportedOfferDraft | null {
-  const externalId = String(
-    pickNumber(record, ["promotionId", "id"]) ?? pickString(record, ["promotionId", "id"]),
-  );
-  const advertiser = readRecord(record.advertiser);
-  const advertiserId = String(
-    pickNumber(advertiser ?? {}, ["id", "advertiserId"]) ??
-      pickNumber(record, ["advertiserId"]) ??
-      "",
-  );
-  const advertiserName =
-    pickString(advertiser ?? {}, ["name"]) ||
-    pickString(record, ["advertiserName"]) ||
-    `Butik ${advertiserId}`;
-  const affiliateUrl =
-    pickString(record, ["url", "trackingUrl", "deeplink"]) ||
-    pickString(record, ["link"]) ||
-    "";
-  const voucherCode = pickString(record, ["voucher", "voucherCode", "code"]) || null;
-  const title = ensureTitle(
-    pickString(record, ["title", "headline", "description"]),
-    `${advertiserName} erbjudande`,
-  );
-  const description = ensureDescription(
-    pickString(record, ["description", "terms"]) || title,
-    title,
-  );
-  const discount = parseDiscountFromText(title, description, pickString(record, ["terms"]));
-  const endsAt = toIsoDate(
-    pickString(record, ["endDate", "expires", "endDateTime", "validTo"]),
-  );
+export function mapAwinPromotion(
+  record: Record<string, unknown>,
+  publisherId: string,
+): ImportedOfferDraft | null {
+  const externalId = pickId(record, ["promotionId"]);
+  const advertiser = readRecord(record.advertiser) ?? {};
+  const advertiserId = pickId(advertiser, ["id"]);
+  const advertiserName = pickString(advertiser, ["name"]) || `Butik ${advertiserId}`;
+  // `url` is the merchant's own page and earns nothing. Only urlTracking pays.
+  const affiliateUrl = pickString(record, ["urlTracking"]);
+  const voucher = readRecord(record.voucher);
+  const voucherCode = voucher ? pickString(voucher, ["code"]) || null : null;
+  const title = ensureTitle(pickString(record, ["title"]), `${advertiserName} erbjudande`);
+  const terms = pickString(record, ["terms"]) || null;
+  const description = ensureDescription(pickString(record, ["description"]) || title, title);
+  const discount = parseDiscountFromText(title, description);
+  const endsAt = toIsoDate(record.endDate);
 
   if (!externalId || !affiliateUrl || !advertiserId || isExpired(endsAt)) {
     return null;
@@ -63,17 +53,17 @@ function mapPromotion(record: Record<string, unknown>): ImportedOfferDraft | nul
     store: {
       externalId: advertiserId,
       name: advertiserName,
-      websiteUrl: pickString(advertiser ?? {}, ["displayUrl", "url"]) || null,
-      logoUrl: pickString(advertiser ?? {}, ["logoUrl"]) || null,
+      websiteUrl: null,
+      logoUrl: pickString(advertiser, ["logoUrl"]) || null,
+      affiliateUrl: `https://www.awin1.com/cread.php?awinmid=${encodeURIComponent(advertiserId)}&awinaffid=${encodeURIComponent(publisherId)}`,
     },
     redemptionType: voucherCode ? "discount_code" : "direct_link",
-    discountType: discount.discountType,
-    discountValue: discount.discountValue,
+    ...discount,
     discountCode: voucherCode,
     affiliateUrl,
-    terms: pickString(record, ["terms"]) || null,
-    imageUrl: pickString(record, ["logoUrl"]) || null,
-    startsAt: toIsoDate(pickString(record, ["startDate", "startDateTime", "validFrom"])),
+    terms,
+    imageUrl: null,
+    startsAt: toIsoDate(record.startDate),
     endsAt,
   };
 }
@@ -89,10 +79,9 @@ export const awinAdapter: AffiliateAdapter = {
       return [];
     }
 
-    const pageSize = 500;
     const allOffers: ImportedOfferDraft[] = [];
 
-    for (let page = 1; page <= 20; page += 1) {
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
       const response = await fetchJson<AwinPromotionResponse>(
         `${BASE_URL}/publisher/${config.publisherId}/promotions`,
         {
@@ -103,29 +92,27 @@ export const awinAdapter: AffiliateAdapter = {
           },
           body: JSON.stringify({
             filters: {
-              regionCodes: [config.regionCode],
+              // Offers from programmes we have not joined cannot earn commission.
+              membership: "joined",
+              regionCodes: [config.regionCode || currentMarket.code],
               status: "active",
               type: "all",
             },
-            pagination: {
-              page,
-              pageSize,
-            },
+            pagination: { page, pageSize: PAGE_SIZE },
           }),
         },
       );
 
-      const items = readArray(response.data ?? response.promotions ?? response);
-      const offers = items
-        .map((item) => {
-          const record = readRecord(item);
-          return record ? mapPromotion(record) : null;
-        })
-        .filter((offer): offer is ImportedOfferDraft => offer !== null);
+      const items = readArray(response.data);
+      for (const item of items) {
+        const record = readRecord(item);
+        const offer = record ? mapAwinPromotion(record, config.publisherId) : null;
+        if (offer) {
+          allOffers.push(offer);
+        }
+      }
 
-      allOffers.push(...offers);
-
-      if (items.length < pageSize) {
+      if (items.length < PAGE_SIZE) {
         break;
       }
     }
