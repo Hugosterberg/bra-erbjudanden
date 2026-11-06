@@ -46,14 +46,12 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
     return result;
   }
 
-  let fetchFailed = false;
   let offers: Awaited<ReturnType<AffiliateAdapter["fetchOffers"]>> = [];
 
   try {
     offers = await adapter.fetchOffers();
     result.fetched = offers.length;
   } catch (error) {
-    fetchFailed = true;
     result.fetchFailed = true;
     result.errors.push(
       error instanceof Error ? error.message : "Kunde inte hämta erbjudanden från nätverket",
@@ -75,8 +73,7 @@ async function syncNetwork(adapter: AffiliateAdapter): Promise<NetworkImportResu
   }
 
   const allowArchive =
-    !fetchFailed &&
-    (offers.length >= MIN_FEED_SIZE_FOR_ARCHIVE || result.created + result.updated > 0);
+    offers.length >= MIN_FEED_SIZE_FOR_ARCHIVE || result.created + result.updated > 0;
 
   try {
     result.archived = await archiveMissingImportedOffers(

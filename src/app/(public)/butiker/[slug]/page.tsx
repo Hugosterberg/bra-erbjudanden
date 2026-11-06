@@ -14,6 +14,7 @@ import { RelatedContent } from "@/features/related/components/related-content";
 import { rankSimilarStores } from "@/features/related/related";
 import { resolveStoreOutboundUrl } from "@/features/stores/outbound";
 import { findActiveStoreBySlug, findActiveStores } from "@/features/stores/queries";
+import { detectNetworkFromUrl } from "@/features/tracking/click-reference";
 import { currentMarket } from "@/shared/config/market";
 import { hasIndexableContent } from "@/shared/lib/indexing";
 import {
@@ -99,6 +100,11 @@ export default async function StorePage({ params }: StorePageProps) {
     .flatMap((offer) => (offer.last_verified_at ? [offer.last_verified_at] : []))
     .sort()
     .at(-1);
+  // The date a visitor sees must reflect the offers, not today's date.
+  const lastUpdated = offers
+    .flatMap((offer) => [offer.updated_at, ...(offer.last_synced_at ? [offer.last_synced_at] : [])])
+    .sort()
+    .at(-1);
   const relatedCategories = Array.from(
     new Map(
       offers
@@ -148,7 +154,7 @@ export default async function StorePage({ params }: StorePageProps) {
   return (
     <>
       <PageHeader
-        eyebrow={`Uppdaterad ${formatCurrentMonth()}`}
+        eyebrow={lastUpdated ? `Uppdaterad ${formatOfferValidity(lastUpdated)}` : "Butik"}
         title={codes.length > 0 ? `Rabattkod ${store.name}` : `Erbjudanden från ${store.name}`}
         description={store.seo_intro ?? store.description ?? "Aktuella erbjudanden och kampanjer."}
         icon={Store}
@@ -176,17 +182,25 @@ export default async function StorePage({ params }: StorePageProps) {
             ) : null}
           </div>
           {outboundUrl ? (
-            <Button variant="outline" asChild>
-              <Link
-                href={`/go/butik/${store.slug}`}
-                rel="sponsored nofollow noopener"
-                target="_blank"
-              >
-                Besök {store.name}
-                <ExternalLink className="size-4" />
-                <span className="sr-only">(öppnas i nytt fönster)</span>
-              </Link>
-            </Button>
+            <div className="grid gap-1">
+              <Button variant="outline" asChild>
+                {/* A plain anchor, as next/link would prefetch the tracking route. */}
+                <a
+                  href={`/go/butik/${store.slug}`}
+                  rel="sponsored nofollow noopener"
+                  target="_blank"
+                >
+                  Besök {store.name}
+                  <ExternalLink className="size-4" />
+                  <span className="sr-only">(öppnas i nytt fönster)</span>
+                </a>
+              </Button>
+              {detectNetworkFromUrl(outboundUrl) ? (
+                <p className="text-center text-[11px] leading-4 text-muted-foreground">
+                  Annonslänk – vi kan få provision.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

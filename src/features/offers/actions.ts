@@ -149,7 +149,7 @@ export async function updateOfferAction(
   // A manual edit is a decision: the next import must not overwrite it.
   await supabase
     .from("offers")
-    .update({ is_import_locked: true })
+    .update({ is_import_locked: true, import_archived_status: null })
     .eq("id", id)
     .eq("is_imported", true);
 
@@ -163,7 +163,10 @@ export async function publishOfferAction(id: string) {
   const supabase = getSupabaseAdminClient();
 
   if (supabase) {
-    await supabase.from("offers").update({ status: "published" }).eq("id", id);
+    await supabase
+      .from("offers")
+      .update({ status: "published", import_archived_status: null })
+      .eq("id", id);
   }
 
   revalidateOfferSurfaces();
@@ -174,7 +177,11 @@ export async function archiveOfferAction(id: string) {
   const supabase = getSupabaseAdminClient();
 
   if (supabase) {
-    await supabase.from("offers").update({ status: "archived" }).eq("id", id);
+    // Clearing the remembered status stops the next import from restoring it.
+    await supabase
+      .from("offers")
+      .update({ status: "archived", import_archived_status: null })
+      .eq("id", id);
   }
 
   revalidateOfferSurfaces();

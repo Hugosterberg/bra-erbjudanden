@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/features/admin/auth";
 import { AdminShell } from "@/features/admin/components/admin-shell";
+import { SetupStatusCard } from "@/features/admin/components/setup-status-card";
 import { findLatestImportRun } from "@/features/affiliate-import/queries";
 import { ImportStatusBadge } from "@/features/affiliate-import/components/import-status-badge";
 import { findAdminCategories } from "@/features/categories/queries";
@@ -57,6 +58,7 @@ export default async function AdminDashboardPage() {
             Enkel status för innehåll, ranking och klickmätning.
           </p>
         </div>
+        <SetupStatusCard />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {stats.map((stat) => {
             const Icon = stat.icon;

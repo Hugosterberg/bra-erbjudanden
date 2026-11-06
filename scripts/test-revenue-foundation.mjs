@@ -11,8 +11,12 @@ import {
   formatDealValue,
   isCommercialLink,
 } from "../src/features/offers/format.ts";
+import { buildSetupChecks } from "../src/features/admin/setup-status.ts";
+import { readNewsletterResult } from "../src/features/newsletter/results.ts";
 import {
   calculateEpc,
+  dedupeTransactions,
+  latestRunPerNetwork,
   mapAddrevenueTransaction,
   mapAdtractionTransaction,
   mapAwinTransaction,
@@ -42,6 +46,73 @@ test("the click reference goes first so a trailing destination cannot swallow it
     appendClickReference("https://go.adt1.com/t/t?a=1&as=2", "adtraction", CLICK),
     `https://go.adt1.com/t/t?epi=${CLICK}&a=1&as=2`,
   );
+});
+
+test("a sale returned twice is saved once, as postgres refuses it otherwise", () => {
+  const sale = { network: "awin", externalId: "1", status: "pending" };
+  const updated = { network: "awin", externalId: "1", status: "approved" };
+  const other = { network: "adtraction", externalId: "1", status: "pending" };
+
+  assert.deepEqual(dedupeTransactions([sale, updated, other]), [updated, other]);
+});
+
+test("awin reports paid commission only when it is approved and paid out", () => {
+  const raw = { id: 1, transactionDate: "2026-11-01T10:00:00", commissionStatus: "approved" };
+
+  assert.equal(mapAwinTransaction({ ...raw, paidToPublisher: true }).status, "paid");
+  assert.equal(mapAwinTransaction({ ...raw, paidToPublisher: false }).status, "approved");
+  assert.equal(
+    mapAwinTransaction({ ...raw, commissionStatus: "declined", paidToPublisher: true }).status,
+    "rejected",
+  );
+});
+
+test("an old sync failure stops showing once the network has recovered", () => {
+  const runs = [
+    { network: "awin", status: "completed" },
+    { network: "awin", status: "failed" },
+    { network: "adtraction", status: "failed" },
+  ];
+
+  assert.deepEqual(latestRunPerNetwork(runs), [runs[0], runs[2]]);
+});
+
+test("setup status names what is missing and accepts a finished setup", () => {
+  const complete = {
+    CRON_SECRET: "x",
+    CLICK_HASH_SALT: "x",
+    NEXT_PUBLIC_COMPANY_NAME: "x",
+    NEXT_PUBLIC_COMPANY_ORG_NUMBER: "x",
+    NEXT_PUBLIC_COMPANY_ADDRESS: "x",
+    NEXT_PUBLIC_SITE_URL: "https://www.braerbjudanden.se",
+    TRADEDOUBLER_VOUCHERS_TOKEN: "x",
+    RESEND_API_KEY: "x",
+    NEWSLETTER_FROM_EMAIL: "x",
+    GOOGLE_SITE_VERIFICATION: "x",
+  };
+  const missing = (env, migrationsApplied = true) =>
+    buildSetupChecks(env, { migrationsApplied })
+      .filter((check) => !check.ok)
+      .map((check) => check.label);
+
+  assert.deepEqual(missing(complete), []);
+  assert.deepEqual(missing(complete, false), ["Databasmigrationer"]);
+  assert.deepEqual(missing({ ...complete, NEXT_PUBLIC_SITE_URL: "http://localhost:3000" }), [
+    "Sajtens adress",
+  ]);
+  // A network needs all of its credentials before it can be used.
+  assert.deepEqual(
+    missing({ ...complete, TRADEDOUBLER_VOUCHERS_TOKEN: "", AWIN_ACCESS_TOKEN: "x" }),
+    ["Affiliatenätverk"],
+  );
+  assert.deepEqual(missing({ ...complete, CRON_SECRET: "  " }), ["Schemalagda jobb"]);
+});
+
+test("only known newsletter results from the url are shown", () => {
+  assert.equal(readNewsletterResult("klart").ok, true);
+  assert.equal(readNewsletterResult("<script>"), null);
+  assert.equal(readNewsletterResult("constructor"), null);
+  assert.equal(readNewsletterResult(undefined), null);
 });
 
 test("older tradedoubler links keep their parenthesis format", () => {

@@ -82,7 +82,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/affiliatedisclosure",
   ].map((path, index) => ({
     url: createAbsoluteUrl(path),
-    lastModified: new Date(),
     changeFrequency: "daily" as const,
     priority: index === 0 ? 1 : 0.8,
   }));

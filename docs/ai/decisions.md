@@ -191,6 +191,16 @@ URL i stället för spårningslänken.
   butiker, och språk och valuta ligger i `shared/config/market.ts`. Rutter, texter
   och domänrouting är fortfarande svenska.
 
+- **Ett utskick får hellre missa någon än skicka dubbelt.** Varje mottagare reserveras i
+  `newsletter_deliveries` innan mejlet går iväg, så två samtidiga körningar kan inte skicka
+  till samma person. Bara svar 429 från Resend försöks igen, eftersom andra fel kan betyda
+  att mejlet ändå skickades.
+- **Spårningsdata gallras.** Hashad IP och user-agent tas bort efter 90 dagar och
+  statistikhändelser efter 13 månader. Klicken sparas utan dem, eftersom de behövs för att
+  stämma av provision. Perioderna står på `/integritetspolicy`.
+- **Favicons går via bildoptimeringen.** Annars kontaktar varje besökares webbläsare Google,
+  vilket integritetspolicyn inte kan lova bort.
+
 ### Hur långt nätverkens format är verifierat
 
 Inget av detta har körts mot riktiga API:er, eftersom nycklar saknas.

@@ -11,7 +11,7 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-Configure these variables in `.env.local`:
+Copy `.env.example` to `.env.local` and configure these variables. `/admin` lists what is still missing:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
