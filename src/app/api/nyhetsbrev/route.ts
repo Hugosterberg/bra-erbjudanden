@@ -12,7 +12,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const formData = await request.formData();
+  const formData = await request.formData().catch(() => null);
+  if (!formData) {
+    return NextResponse.json({ ok: false, message: "Ogiltig förfrågan." }, { status: 400 });
+  }
+
   const result = await registerDealSubscriber(formData);
 
   return NextResponse.json(result, { status: result.ok ? 200 : 400 });

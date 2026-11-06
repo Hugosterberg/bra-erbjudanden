@@ -11,6 +11,7 @@ import {
 } from "@/features/newsletter/actions";
 import { CampaignForm } from "@/features/newsletter/components/campaign-form";
 import { isMailerConfigured } from "@/features/newsletter/mailer";
+import { readNewsletterResult } from "@/features/newsletter/results";
 import { formatDealHeadline } from "@/features/offers/format";
 import { findActiveOffers } from "@/features/offers/queries";
 import { createMetadata } from "@/shared/lib/seo";
@@ -53,13 +54,36 @@ async function findCampaigns() {
   return data ?? [];
 }
 
-export default async function AdminNewsletterPage() {
+/** People who signed up before double opt-in have consented but not confirmed. */
+async function countActiveWithoutConfirmation() {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return 0;
+  }
+
+  const { count } = await supabase
+    .from("deal_subscribers")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "active")
+    .is("confirmed_at", null);
+
+  return count ?? 0;
+}
+
+type AdminNewsletterPageProps = {
+  searchParams: Promise<{ resultat?: string }>;
+};
+
+export default async function AdminNewsletterPage({ searchParams }: AdminNewsletterPageProps) {
   await requireAdmin();
-  const [offers, campaigns, activeCount, pendingCount] = await Promise.all([
+  const { resultat } = await searchParams;
+  const result = readNewsletterResult(resultat);
+  const [offers, campaigns, activeCount, pendingCount, unconfirmedCount] = await Promise.all([
     findActiveOffers({ limit: 60 }),
     findCampaigns(),
     countSubscribers("active"),
     countSubscribers("pending"),
+    countActiveWithoutConfirmation(),
   ]);
   const mailerReady = isMailerConfigured();
 
@@ -71,8 +95,24 @@ export default async function AdminNewsletterPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {activeCount} bekräftade prenumeranter och {pendingCount} som inte har bekräftat ännu.
             Utskick går bara till bekräftade.
+            {unconfirmedCount > 0
+              ? ` ${unconfirmedCount} av de bekräftade anmälde sig innan dubbel bekräftelse fanns och får också utskick.`
+              : ""}
           </p>
         </div>
+
+        {result ? (
+          <div
+            role="status"
+            className={
+              result.ok
+                ? "rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm"
+                : "rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+            }
+          >
+            {result.message}
+          </div>
+        ) : null}
 
         {!mailerReady ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireAdmin } from "@/features/admin/auth";
@@ -18,6 +19,7 @@ import {
   type OutgoingEmail,
 } from "./mailer";
 import { sendSubscriberConfirmation } from "./confirmation";
+import type { NewsletterResult } from "./results";
 import { buildCampaignEmail, type CampaignOffer } from "./templates";
 
 const SEND_TIME_BUDGET_MS = 240_000;
@@ -33,21 +35,30 @@ export type NewsletterActionState = {
   message: string;
 };
 
+function finish(result: NewsletterResult): never {
+  revalidatePath("/admin/nyhetsbrev");
+  redirect(`/admin/nyhetsbrev?resultat=${result}`);
+}
+
 function unsubscribeUrl(token: string) {
   return `${siteConfig.url}/nyhetsbrev/avregistrera?token=${token}`;
 }
 
+/** An offer that has ended since the campaign was written must not be sent. */
 async function loadCampaignOffers(offerIds: string[]): Promise<CampaignOffer[]> {
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
     return [];
   }
 
+  const now = new Date().toISOString();
   const { data } = await supabase
     .from("offers")
     .select("id, title, discount_type, discount_value, is_up_to, deal_label, discount_code, store:stores(name)")
     .in("id", offerIds)
-    .eq("status", "published");
+    .eq("status", "published")
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`);
 
   return (data ?? []).map((offer) => ({
     id: offer.id,
@@ -120,7 +131,7 @@ export async function sendCampaignTestAction(formData: FormData): Promise<void> 
   const to = z.string().email().safeParse(String(formData.get("test_email") ?? ""));
 
   if (!supabase || !to.success) {
-    return;
+    finish("test-fel");
   }
 
   const { data: campaign } = await supabase
@@ -130,23 +141,36 @@ export async function sendCampaignTestAction(formData: FormData): Promise<void> 
     .maybeSingle();
 
   if (!campaign) {
-    return;
+    finish("test-fel");
   }
 
   const offers = await loadCampaignOffers(campaign.offer_ids);
-  await sendEmail(
-    buildMarketingEmail(
-      to.data,
-      "00000000-0000-0000-0000-000000000000",
-      { subject: `[TEST] ${campaign.subject}`, intro: campaign.intro },
-      offers,
-    ),
-  );
+  if (offers.length === 0) {
+    finish("inga-erbjudanden");
+  }
+
+  try {
+    await sendEmail(
+      buildMarketingEmail(
+        to.data,
+        "00000000-0000-0000-0000-000000000000",
+        { subject: `[TEST] ${campaign.subject}`, intro: campaign.intro },
+        offers,
+      ),
+    );
+  } catch (error) {
+    console.error("[newsletter] Test mail failed", error);
+    finish("test-fel");
+  }
+
+  finish("test-skickat");
 }
 
 /**
- * Safe to run again: everyone already in the delivery log is skipped, so a run
- * that hit the time limit or a provider error simply continues where it stopped.
+ * Safe to press twice or run again. Each recipient is claimed in the delivery log
+ * before their mail goes out, so overlapping runs cannot both send to them, and a
+ * run that stopped continues where it left off. If a run dies right after a claim,
+ * those recipients are skipped: a missed mail is better than a duplicate.
  */
 export async function sendCampaignAction(formData: FormData): Promise<void> {
   await requireAdmin();
@@ -154,7 +178,7 @@ export async function sendCampaignAction(formData: FormData): Promise<void> {
   const campaignId = String(formData.get("campaign_id") ?? "");
 
   if (!supabase || !isMailerConfigured()) {
-    return;
+    finish("ej-konfigurerad");
   }
 
   const { data: campaign } = await supabase
@@ -164,15 +188,13 @@ export async function sendCampaignAction(formData: FormData): Promise<void> {
     .maybeSingle();
 
   if (!campaign || campaign.status === "sent") {
-    return;
+    finish("redan-skickat");
   }
 
   const offers = await loadCampaignOffers(campaign.offer_ids);
   if (offers.length === 0) {
-    return;
+    finish("inga-erbjudanden");
   }
-
-  await supabase.from("newsletter_campaigns").update({ status: "sending" }).eq("id", campaign.id);
 
   const subscribers = await fetchAllPages<{ id: string; email: string; unsubscribe_token: string }>(
     (from, to) =>
@@ -183,6 +205,11 @@ export async function sendCampaignAction(formData: FormData): Promise<void> {
         .order("id", { ascending: true })
         .range(from, to),
   );
+
+  if (subscribers.length === 0) {
+    finish("inga-prenumeranter");
+  }
+
   const delivered = await fetchAllPages<{ subscriber_id: string }>((from, to) =>
     supabase
       .from("newsletter_deliveries")
@@ -194,21 +221,50 @@ export async function sendCampaignAction(formData: FormData): Promise<void> {
   const remaining = subscribers.filter((subscriber) => !deliveredIds.has(subscriber.id));
   const startedAt = Date.now();
 
+  await supabase.from("newsletter_campaigns").update({ status: "sending" }).eq("id", campaign.id);
+
   for (let index = 0; index < remaining.length; index += EMAIL_BATCH_SIZE) {
     if (Date.now() - startedAt > SEND_TIME_BUDGET_MS) {
-      revalidatePath("/admin/nyhetsbrev");
-      return;
+      finish("pausad");
     }
 
     const batch = remaining.slice(index, index + EMAIL_BATCH_SIZE);
-    await sendEmailBatch(
-      batch.map((subscriber) =>
-        buildMarketingEmail(subscriber.email, subscriber.unsubscribe_token, campaign, offers),
-      ),
-    );
-    await supabase.from("newsletter_deliveries").insert(
-      batch.map((subscriber) => ({ campaign_id: campaign.id, subscriber_id: subscriber.id })),
-    );
+    const { data: claimed, error: claimError } = await supabase
+      .from("newsletter_deliveries")
+      .upsert(
+        batch.map((subscriber) => ({ campaign_id: campaign.id, subscriber_id: subscriber.id })),
+        { onConflict: "campaign_id,subscriber_id", ignoreDuplicates: true },
+      )
+      .select("subscriber_id");
+
+    if (claimError) {
+      console.error("[newsletter] Could not claim recipients", claimError.message);
+      finish("fel");
+    }
+
+    const claimedIds = new Set((claimed ?? []).map((row) => row.subscriber_id));
+    const recipients = batch.filter((subscriber) => claimedIds.has(subscriber.id));
+
+    if (recipients.length === 0) {
+      continue;
+    }
+
+    try {
+      await sendEmailBatch(
+        recipients.map((subscriber) =>
+          buildMarketingEmail(subscriber.email, subscriber.unsubscribe_token, campaign, offers),
+        ),
+      );
+    } catch (error) {
+      console.error("[newsletter] Batch failed", error);
+      // Released so that pressing "Fortsätt skicka" tries these again.
+      await supabase
+        .from("newsletter_deliveries")
+        .delete()
+        .eq("campaign_id", campaign.id)
+        .in("subscriber_id", [...claimedIds]);
+      finish("fel");
+    }
   }
 
   await supabase
@@ -216,7 +272,7 @@ export async function sendCampaignAction(formData: FormData): Promise<void> {
     .update({ status: "sent", sent_at: new Date().toISOString() })
     .eq("id", campaign.id);
 
-  revalidatePath("/admin/nyhetsbrev");
+  finish("klart");
 }
 
 /** For people who signed up before email was connected. */
@@ -225,7 +281,7 @@ export async function sendPendingConfirmationsAction(): Promise<void> {
   const supabase = getSupabaseAdminClient();
 
   if (!supabase || !isMailerConfigured()) {
-    return;
+    finish("ej-konfigurerad");
   }
 
   const { data } = await supabase
@@ -239,5 +295,5 @@ export async function sendPendingConfirmationsAction(): Promise<void> {
     await sendSubscriberConfirmation(subscriber);
   }
 
-  revalidatePath("/admin/nyhetsbrev");
+  finish("bekraftelser-skickade");
 }

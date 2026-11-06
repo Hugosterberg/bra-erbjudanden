@@ -21,6 +21,8 @@ export const initialSubscriberState: SubscriberResult = {
   message: "",
 };
 
+const CONFIRMATION_RESEND_INTERVAL_MS = 60 * 60 * 1000;
+
 const SAVE_FAILED: SubscriberResult = {
   ok: false,
   message: "Kunde inte spara just nu. Försök igen om en stund.",
@@ -65,10 +67,7 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
   const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
-    return {
-      ok: false,
-      message: "Kunde inte spara just nu. Kontrollera Supabase-inställningarna.",
-    };
+    return SAVE_FAILED;
   }
 
   const email = parsed.data.email.trim().toLowerCase();
@@ -79,7 +78,7 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
   try {
     const { data: existing, error: lookupError } = await supabase
       .from("deal_subscribers")
-      .select("id, status, signup_count, signup_sources, interests, confirmation_token")
+      .select("id, status, signup_count, signup_sources, interests, confirmation_token, confirmation_sent_at")
       .eq("email", email)
       .maybeSingle();
 
@@ -104,6 +103,13 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
       }
     } else {
       const sources = existing?.signup_sources ?? [];
+      // The form must not be usable for flooding someone else's inbox.
+      const recentlySentAt =
+        existing?.status === "pending" &&
+        existing.confirmation_sent_at &&
+        Date.now() - new Date(existing.confirmation_sent_at).getTime() < CONFIRMATION_RESEND_INTERVAL_MS
+          ? existing.confirmation_sent_at
+          : null;
       const row = {
         email,
         status: "pending" as const,
@@ -116,7 +122,7 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
         interests: Array.from(new Set([...(existing?.interests ?? []), ...interests])),
         // A person who has left needs a new token before they can come back.
         confirmation_token: existing?.confirmation_token ?? randomUUID(),
-        confirmation_sent_at: null,
+        confirmation_sent_at: recentlySentAt,
       };
 
       const { data: saved, error } = existing
@@ -137,7 +143,7 @@ export async function registerDealSubscriber(input: FormData): Promise<Subscribe
         return SAVE_FAILED;
       }
 
-      if (isMailerConfigured()) {
+      if (isMailerConfigured() && !recentlySentAt) {
         await sendSubscriberConfirmation(saved);
       }
     }
