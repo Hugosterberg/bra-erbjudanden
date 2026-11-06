@@ -1,6 +1,6 @@
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
 
-import type { NormalizedTransaction } from "./mappers";
+import { dedupeTransactions, type NormalizedTransaction } from "./mappers";
 import { TRANSACTION_CLIENTS } from "./network-clients";
 
 // Commission can be approved or rejected long after the sale.
@@ -45,7 +45,9 @@ async function findProgramStores(supabase: AdminClient, network: NormalizedTrans
   return new Map((data ?? []).map((row) => [row.external_id, row.store_id]));
 }
 
-async function saveTransactions(supabase: AdminClient, transactions: NormalizedTransaction[]) {
+async function saveTransactions(supabase: AdminClient, fetched: NormalizedTransaction[]) {
+  const transactions = dedupeTransactions(fetched);
+
   if (transactions.length === 0) {
     return;
   }

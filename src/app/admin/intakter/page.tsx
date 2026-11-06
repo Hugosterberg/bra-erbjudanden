@@ -16,6 +16,7 @@ import { calculateEpc } from "@/features/revenue/mappers";
 import { TRANSACTION_CLIENTS } from "@/features/revenue/network-clients";
 import {
   findLatestTransactionSyncRuns,
+  findRecentTransactions,
   findRevenueSummary,
   type RevenueRow,
 } from "@/features/revenue/queries";
@@ -39,7 +40,24 @@ function formatMoney(value: number, currency: string) {
   }).format(value);
 }
 
-function RevenueTable({ title, rows, label }: { title: string; rows: RevenueRow[]; label: string }) {
+const TRANSACTION_STATUS_LABELS = {
+  pending: "Väntande",
+  approved: "Godkänd",
+  rejected: "Nekad",
+  paid: "Utbetald",
+} as const;
+
+function RevenueTable({
+  title,
+  rows,
+  label,
+  formatLabel = (row) => row.dimension_label ?? "Okänd",
+}: {
+  title: string;
+  rows: RevenueRow[];
+  label: string;
+  formatLabel?: (row: RevenueRow) => string;
+}) {
   return (
     <Card className="rounded-lg shadow-none">
       <CardHeader>
@@ -71,7 +89,7 @@ function RevenueTable({ title, rows, label }: { title: string; rows: RevenueRow[
                 return (
                   <TableRow key={`${row.dimension_key}-${row.currency}`}>
                     <TableCell className="max-w-72 truncate font-medium">
-                      {row.dimension_label ?? "Okänd"}
+                      {formatLabel(row)}
                     </TableCell>
                     <TableCell className="text-right">{Number(row.clicks)}</TableCell>
                     <TableCell className="text-right">{Number(row.transactions)}</TableCell>
@@ -98,20 +116,22 @@ function RevenueTable({ title, rows, label }: { title: string; rows: RevenueRow[
 export default async function AdminRevenuePage() {
   await requireAdmin();
   const since = daysAgo(PERIOD_DAYS);
-  const [byNetwork, byStore, byOffer, byPage, syncRuns] = await Promise.all([
+  const [byNetwork, byStore, byOffer, byPage, syncRuns, recentTransactions] = await Promise.all([
     findRevenueSummary("network", since),
     findRevenueSummary("store", since),
     findRevenueSummary("offer", since),
     findRevenueSummary("page", since),
     findLatestTransactionSyncRuns(),
+    findRecentTransactions(),
   ]);
-  const totals = byNetwork.reduce(
-    (sum, row) => ({
-      clicks: sum.clicks + Number(row.clicks),
-      transactions: sum.transactions + Number(row.transactions),
-    }),
-    { clicks: 0, transactions: 0 },
-  );
+  const totals = {
+    // A network reporting in two currencies has two rows with the same clicks.
+    clicks: [...new Map(byNetwork.map((row) => [row.dimension_key, Number(row.clicks)])).values()].reduce(
+      (sum, clicks) => sum + clicks,
+      0,
+    ),
+    transactions: byNetwork.reduce((sum, row) => sum + Number(row.transactions), 0),
+  };
   const connected = TRANSACTION_CLIENTS.filter((client) => client.isConfigured());
 
   return (
@@ -159,7 +179,56 @@ export default async function AdminRevenuePage() {
           </div>
         ) : null}
 
-        <RevenueTable title="Per nätverk" rows={byNetwork} label="Nätverk" />
+        <Card className="rounded-lg shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">Senaste köpen</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Efter ett testköp ska köpet synas här med Ja under Klick-id. Står det Nej gick köpet
+              inte att koppla till ett klick, och spårningen för nätverket behöver kontrolleras.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {recentTransactions.length === 0 ? (
+              <p className="px-6 pb-6 text-sm text-muted-foreground">Inga köp har hämtats ännu.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Datum</TableHead>
+                    <TableHead>Nätverk</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Provision</TableHead>
+                    <TableHead>Klick-id</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        {new Intl.DateTimeFormat(currentMarket.locale, { dateStyle: "medium" }).format(
+                          new Date(transaction.transaction_at),
+                        )}
+                      </TableCell>
+                      <TableCell>{formatNetworkLabel(transaction.network)}</TableCell>
+                      <TableCell>{TRANSACTION_STATUS_LABELS[transaction.status]}</TableCell>
+                      <TableCell className="text-right">
+                        {formatMoney(Number(transaction.commission), transaction.currency)}
+                      </TableCell>
+                      <TableCell>{transaction.click_id ? "Ja" : "Nej"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <RevenueTable
+          title="Per nätverk"
+          rows={byNetwork}
+          label="Nätverk"
+          formatLabel={(row) => (row.dimension_key ? formatNetworkLabel(row.dimension_key) : "Utan nätverk")}
+        />
         <RevenueTable title="Per butik" rows={byStore} label="Butik" />
         <RevenueTable title="Per erbjudande" rows={byOffer} label="Erbjudande" />
         <RevenueTable title="Per sida som skickade klicket" rows={byPage} label="Sida" />

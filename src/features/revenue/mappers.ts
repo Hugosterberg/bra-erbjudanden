@@ -67,7 +67,10 @@ export function mapAwinTransaction(raw: Json): NormalizedTransaction | null {
     programExternalId: text(raw.advertiserId) || null,
     clickRef,
     clickId: parseClickReference(clickRef),
-    status: statuses[text(raw.commissionStatus)] ?? "pending",
+    status:
+      raw.paidToPublisher === true && text(raw.commissionStatus) === "approved"
+        ? "paid"
+        : (statuses[text(raw.commissionStatus)] ?? "pending"),
     commission: amount(commission.amount) ?? 0,
     orderValue: amount(sale.amount),
     currency: text(commission.currency) || "SEK",
@@ -144,6 +147,29 @@ export function mapAddrevenueTransaction(raw: Json): NormalizedTransaction | nul
 function findReferenceIn(value: unknown) {
   const match = JSON.stringify(value ?? "").match(/\b[0-9a-f]{32}\b/i);
   return match ? parseClickReference(match[0]) : null;
+}
+
+/**
+ * Overlapping date ranges or shifting pages can return a sale twice, and Postgres
+ * refuses an upsert that touches the same row twice in one statement.
+ */
+export function dedupeTransactions(transactions: NormalizedTransaction[]) {
+  return [
+    ...new Map(transactions.map((item) => [`${item.network}:${item.externalId}`, item])).values(),
+  ];
+}
+
+/** A failure that a later run has recovered from is no longer worth showing. */
+export function latestRunPerNetwork<T extends { network: string }>(runsNewestFirst: T[]) {
+  const latest = new Map<string, T>();
+
+  for (const run of runsNewestFirst) {
+    if (!latest.has(run.network)) {
+      latest.set(run.network, run);
+    }
+  }
+
+  return [...latest.values()];
 }
 
 /** Earnings per click, the number that shows which stores are worth effort. */
