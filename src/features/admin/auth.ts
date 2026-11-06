@@ -2,8 +2,10 @@
 
 import { createHash, timingSafeEqual } from "node:crypto";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+import { consumeRateLimit, rateLimitKeyFromHeaders } from "@/shared/lib/rate-limit";
 
 const adminSessionCookie = "braerbjudanden_admin_session";
 
@@ -61,6 +63,12 @@ export async function signInAction(formData: FormData) {
 
   if (!expectedPassword) {
     redirect("/admin/login?error=missing-password");
+  }
+
+  // Ten attempts per quarter of an hour makes guessing the single password slow.
+  const key = rateLimitKeyFromHeaders("admin-login", await headers());
+  if (!(await consumeRateLimit(key, 10, 15 * 60))) {
+    redirect("/admin/login?error=rate-limited");
   }
 
   if (!valuesMatch(password, expectedPassword)) {

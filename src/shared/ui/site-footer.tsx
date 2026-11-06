@@ -6,14 +6,14 @@ import { siteConfig } from "@/shared/config/site";
 import { AffiliateDisclosure } from "@/shared/ui/affiliate-disclosure";
 
 const signupPerks = [
-  { icon: BadgeCheck, label: "Handplockat urval" },
+  { icon: BadgeCheck, label: "Utvalda erbjudanden" },
   { icon: ShieldCheck, label: "Ingen spam" },
   { icon: CheckCircle2, label: "Avsluta när du vill" },
 ];
 
 const footerPerks = [
-  { icon: BadgeCheck, label: "Handplockat urval" },
-  { icon: CheckCircle2, label: "Bara aktiva erbjudanden" },
+  { icon: BadgeCheck, label: "Öppen ranking" },
+  { icon: CheckCircle2, label: "Giltighetstid på varje erbjudande" },
   { icon: ShieldCheck, label: "Annonslänkar märks tydligt" },
 ];
 
@@ -43,8 +43,8 @@ export function SiteFooter() {
               rabatt
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">
-              Vi mailar ett kort, handplockat urval när något verkligen är värt din
-              uppmärksamhet. Inget brus, bara de bästa erbjudandena.
+              Vi mailar ett kort urval när något verkligen är värt din uppmärksamhet.
+              Du bekräftar din adress först och kan avsluta med en länk i varje mejl.
             </p>
 
             <div className="mx-auto mt-7 max-w-md text-left">
@@ -85,8 +85,7 @@ export function SiteFooter() {
               </span>
             </Link>
             <p className="max-w-md text-sm leading-6 text-muted-foreground">
-              {siteConfig.description} Vi rankar tydligt och visar bara aktiva
-              deals – aldrig utgångna.
+              {siteConfig.description}
             </p>
             <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
               {footerPerks.map((perk) => {
@@ -135,6 +134,12 @@ export function SiteFooter() {
               </Link>
               <Link href="/partner" className="hover:text-foreground">
                 Partner
+              </Link>
+              <Link href="/om-oss" className="hover:text-foreground">
+                Om oss
+              </Link>
+              <Link href="/integritetspolicy" className="hover:text-foreground">
+                Integritetspolicy
               </Link>
               <Link href="/affiliatedisclosure" className="hover:text-foreground">
                 Annonsinformation

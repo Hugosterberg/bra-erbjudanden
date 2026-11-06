@@ -11,7 +11,7 @@ export const revalidate = 300;
 export const metadata = createMetadata({
   title: "Kampanjer – aktuella deals från svenska butiker",
   description:
-    "Aktuella kampanjer och tidsbegränsade erbjudanden från svenska butiker. Handplockade deals som aktiveras direkt via länk – inga koder behövs.",
+    "Aktuella kampanjer och tidsbegränsade erbjudanden från svenska butiker. Erbjudanden som aktiveras direkt via länk – inga koder behövs.",
   path: "/kampanjer",
 });
 
@@ -26,7 +26,7 @@ export default async function CampaignsPage() {
       <PageHeader
         eyebrow="Direkta kampanjer"
         title="Kampanjer"
-        description="Samlade kampanjer där erbjudandet aktiveras via länk istället för rabattkod. Allt är kopplat till central klickspårning och tydlig affiliateinformation."
+        description="Samlade kampanjer där erbjudandet aktiveras via länk istället för rabattkod. Länkarna kan ge oss provision, vilket märks ut vid varje erbjudande."
         icon={Megaphone}
         stats={[
           { value: offers.length, label: "aktiva kampanjer" },

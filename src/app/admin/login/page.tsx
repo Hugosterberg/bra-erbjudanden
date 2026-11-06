@@ -23,6 +23,10 @@ function getErrorMessage(error?: string) {
     return "ADMIN_PASSWORD saknas i miljövariablerna.";
   }
 
+  if (error === "rate-limited") {
+    return "För många försök. Vänta en stund och försök igen.";
+  }
+
   if (error === "invalid") {
     return "Fel lösenord.";
   }

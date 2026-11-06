@@ -9,12 +9,17 @@ import Link from "next/link";
 
 export const revalidate = 300;
 
-export const metadata = createMetadata({
-  title: "Bäst i test – redaktionella köpguider",
-  description:
-    "Redaktionella jämförelser och köpguider från braerbjudanden.se. Tydlig metod, inga påhittade tester och ranking som är vår bedömning.",
-  path: "/bast-i-test",
-});
+export async function generateMetadata() {
+  const articles = await findPublishedArticles({ type: "best_in_test", limit: 1 });
+
+  return createMetadata({
+    title: "Bäst i test – redaktionella köpguider",
+    description:
+      "Redaktionella jämförelser och köpguider från braerbjudanden.se. Tydlig metod, inga påhittade tester och ranking som är vår bedömning.",
+    path: "/bast-i-test",
+    index: articles.length > 0,
+  });
+}
 
 export default async function BestInTestIndexPage() {
   const [articles, categories] = await Promise.all([

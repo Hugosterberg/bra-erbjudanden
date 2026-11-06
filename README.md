@@ -19,8 +19,14 @@ Configure these variables in `.env.local`:
 - `SUPABASE_DB_PASSWORD` for Supabase CLI migration commands
 - `CLICK_HASH_SALT` for privacy-conscious IP hashing
 - `ADMIN_PASSWORD` for password-only admin login at `/admin`
-- `CRON_SECRET` for securing the nightly affiliate import cron job
+- `CRON_SECRET` for securing the import and commission cron jobs (required in production)
+- `NEXT_PUBLIC_COMPANY_NAME`, `NEXT_PUBLIC_COMPANY_ORG_NUMBER`, `NEXT_PUBLIC_COMPANY_ADDRESS` shown on `/om-oss` and `/integritetspolicy`, as required by lagen om elektronisk handel
+- `RESEND_API_KEY` and `NEWSLETTER_FROM_EMAIL` for confirmation mail and newsletters
 - Optional: `NEXT_PUBLIC_SITE_URL` for canonical URLs in production
+- Optional: `GOOGLE_SITE_VERIFICATION` for Google Search Console
+- Optional: `AFFILIATE_IMPORT_AUTO_PUBLISH=true` to publish imported offers without review
+- Optional: `ADDREVENUE_CLICK_REF_PARAM` once a test purchase has confirmed which link parameter Addrevenue reports back
+- Optional: `NEXT_PUBLIC_MARKET` for future country sites (default `SE`)
 - Affiliate network credentials (enable only the networks you are approved on):
   - `ADDREVENUE_API_TOKEN` + `ADDREVENUE_CHANNEL_ID`
   - `ADTRACTION_API_TOKEN` + `ADTRACTION_CHANNEL_ID`
@@ -28,11 +34,12 @@ Configure these variables in `.env.local`:
   - `AWIN_ACCESS_TOKEN` + `AWIN_PUBLISHER_ID` (+ optional `AWIN_REGION_CODE`, default `SE`)
   - `TRADEDOUBLER_VOUCHERS_TOKEN`
 
-Affiliate imports run on a schedule via Vercel Cron and can be triggered manually from `/admin/import`.
+Affiliate imports run on a schedule via Vercel Cron and can be triggered manually from `/admin/import`. New offers are saved as drafts for review under `/admin/erbjudanden`. Commission is synced daily from Awin, Adtraction and Addrevenue and shown under `/admin/intakter`.
 
 ```bash
 npm test
-npm run test:import
+npm run typecheck
+npm run lint
 ```
 
 Apply all SQL migrations in `supabase/migrations/`, including the discovery-platform tables (`products`, `articles`, `coupon_feedback`, `discovery_events`) and editorial guide seed.
@@ -50,10 +57,13 @@ Apply all SQL migrations in `supabase/migrations/`, including the discovery-plat
 - `/sok` (noindex)
 - `/partner`
 - `/kampanjer`
+- `/black-friday` and `/mellandagsrea`
+- `/om-oss` and `/integritetspolicy`
 - `/affiliatedisclosure`
-- `/go/[offerId]` affiliate redirect
+- `/nyhetsbrev/bekrafta` and `/nyhetsbrev/avregistrera` (noindex)
+- `/go/[offerId]` and `/go/butik/[slug]` tracked redirects
 
-Admin editorial: `/admin/artiklar` and `/admin/produkter`.
+Admin: `/admin/erbjudanden`, `/admin/import`, `/admin/intakter`, `/admin/nyhetsbrev`, `/admin/artiklar` and `/admin/produkter`.
 
 ## Data persistence
 

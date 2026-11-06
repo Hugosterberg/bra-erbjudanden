@@ -7,12 +7,17 @@ import { PageHeader } from "@/shared/ui/page-header";
 
 export const revalidate = 300;
 
-export const metadata = createMetadata({
-  title: "Recensioner – redaktionella produktomdömen",
-  description:
-    "Enskilda produktrecensioner från braerbjudanden.se. Betyg är vår redaktionella bedömning och publiceras bara när innehållet faktiskt finns.",
-  path: "/recensioner",
-});
+export async function generateMetadata() {
+  const articles = await findPublishedArticles({ type: "review", limit: 1 });
+
+  return createMetadata({
+    title: "Recensioner – redaktionella produktomdömen",
+    description:
+      "Enskilda produktrecensioner från braerbjudanden.se. Betyg är vår redaktionella bedömning och publiceras bara när innehållet faktiskt finns.",
+    path: "/recensioner",
+    index: articles.length > 0,
+  });
+}
 
 export default async function ReviewsIndexPage() {
   const articles = await findPublishedArticles({ type: "review" });

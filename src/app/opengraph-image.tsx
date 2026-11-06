@@ -70,7 +70,7 @@ export default function OpengraphImage() {
             color: "#bbf7d0",
           }}
         >
-          <span>Handplockat urval</span>
+          <span>Öppen ranking</span>
           <span>·</span>
           <span>Bara aktiva erbjudanden</span>
           <span>·</span>

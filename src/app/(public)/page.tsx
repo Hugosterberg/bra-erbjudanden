@@ -19,7 +19,7 @@ import { findPublishedArticles } from "@/features/editorial/queries";
 import { FeaturedOfferCard } from "@/features/offers/components/featured-offer-card";
 import { OfferList } from "@/features/offers/components/offer-list";
 import { compareByDiscount } from "@/features/offers/format";
-import { findActiveOffers } from "@/features/offers/queries";
+import { findActiveOfferSummaries, findActiveOffers } from "@/features/offers/queries";
 import { sortOffers, withClickCounts } from "@/features/offers/sort";
 import { SiteSearchForm } from "@/features/search/components/site-search-form";
 import { StoreGrid } from "@/features/stores/components/store-grid";
@@ -44,7 +44,7 @@ export const revalidate = 300;
 export const metadata = createMetadata({
   title: "Bra erbjudanden – rabatter, rabattkoder & kampanjer i Sverige",
   description:
-    "Hitta bra erbjudanden idag: handplockade rabatter, rabattkoder och kampanjer från svenska butiker. Alltid aktiva erbjudanden – aldrig utgångna. Spara pengar med braerbjudanden.se.",
+    "Hitta bra erbjudanden idag: rabatter, rabattkoder och kampanjer från svenska butiker, rankade öppet och med giltighetstid på varje erbjudande.",
   absoluteTitle: true,
 });
 
@@ -52,7 +52,7 @@ const faqItems = [
   {
     question: "Vad är braerbjudanden.se?",
     answer:
-      "braerbjudanden.se samlar bra erbjudanden, rabatter och rabattkoder från svenska butiker på ett ställe. Vi handplockar och rankar alla deals så att du snabbt hittar det som faktiskt är värt att klicka på.",
+      "braerbjudanden.se samlar bra erbjudanden, rabatter och rabattkoder från svenska butiker på ett ställe. Vi rankar dem öppet så att du snabbt hittar det som är värt att klicka på. Vi kan få provision från butikerna, och det märks ut vid länkarna.",
   },
   {
     question: "Hur använder jag en rabattkod?",
@@ -62,31 +62,36 @@ const faqItems = [
   {
     question: "Är alla erbjudanden aktuella?",
     answer:
-      "Ja. Vi visar bara aktiva erbjudanden och tar bort kampanjer som gått ut. Varje erbjudande visar dessutom hur länge det gäller.",
+      "Vi visar bara erbjudanden inom sin giltighetstid och tar bort dem när de går ut. En kod kan ändå sluta gälla i förtid eller ha villkor hos butiken, så kontrollera alltid priset i kassan.",
   },
   {
     question: "Vad är Deal Score?",
     answer:
-      "Deal Score är braerbjudandens egen ranking utifrån rabatt, aktualitet och verifiering. Sponsrade erbjudanden får ingen extra poäng. Det är inte ett historiskt prisbevis.",
+      "Deal Score är braerbjudandens egen ranking utifrån rabatt, aktualitet, kontroll och intresse. Varken sponsring eller provision ger extra poäng. Det är inte ett historiskt prisbevis.",
   },
 ];
 
 const trustItems = [
   {
     icon: BadgeCheck,
-    label: "Handplockad sortering",
+    label: "Öppen ranking",
   },
   {
     icon: CheckCircle2,
-    label: "Bara aktiva erbjudanden",
+    label: "Giltighetstid på varje erbjudande",
   },
 ];
 
+const HOME_OFFER_POOL = 120;
+
 export default async function HomePage() {
   const weekAgo = daysAgo(7);
-  const [offers, categories, stores, bestInTest, guides, offerClicks, storeClicks] =
+  // The page only shows a handful of offers, so it reads the top of the ranking
+  // and takes its totals from the light summaries instead of every full row.
+  const [offers, summaries, categories, stores, bestInTest, guides, offerClicks, storeClicks] =
     await Promise.all([
-      findActiveOffers(),
+      findActiveOffers({ limit: HOME_OFFER_POOL }),
+      findActiveOfferSummaries(),
       findActiveCategories(),
       findActiveStores(),
       findPublishedArticles({ type: "best_in_test", limit: 3 }),
@@ -94,7 +99,7 @@ export default async function HomePage() {
       countOfferClicksSince(weekAgo),
       countStoreClicksSince(weekAgo),
     ]);
-  const offerCount = offers.length;
+  const offerCount = summaries.length;
   const featuredOffer = offers.length
     ? [...offers].sort(compareByDiscount)[0]
     : undefined;
@@ -115,10 +120,8 @@ export default async function HomePage() {
         !hottest.some((item) => item.id === offer.id),
     )
     .slice(0, 8);
-  const storeCount = new Set(
-    offers.map((offer) => offer.store?.id).filter(Boolean),
-  ).size;
-  const codeCount = offers.filter((offer) => offer.discount_code).length;
+  const storeCount = new Set(summaries.map((offer) => offer.store_id)).size;
+  const codeCount = summaries.filter((offer) => offer.discount_code).length;
   const popularStores = [...stores]
     .sort((a, b) => (storeClicks.get(b.id) ?? 0) - (storeClicks.get(a.id) ?? 0))
     .slice(0, 4);
@@ -130,12 +133,9 @@ export default async function HomePage() {
   ];
 
   const categoryCounts = new Map<string, number>();
-  for (const offer of offers) {
-    if (offer.category) {
-      categoryCounts.set(
-        offer.category.id,
-        (categoryCounts.get(offer.category.id) ?? 0) + 1,
-      );
+  for (const offer of summaries) {
+    if (offer.category_id) {
+      categoryCounts.set(offer.category_id, (categoryCounts.get(offer.category_id) ?? 0) + 1);
     }
   }
 
@@ -168,7 +168,7 @@ export default async function HomePage() {
         <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
           <span className="animate-float-tag-a absolute top-[8%] right-[9%] inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-card/70 px-3.5 py-1.5 text-sm font-semibold text-primary shadow-soft backdrop-blur">
             <Tag className="size-3.5" />
-            −50%
+            REA
           </span>
           <span className="animate-float-tag-b absolute bottom-[10%] right-[24%] inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-card/70 px-3.5 py-1.5 text-sm font-semibold text-primary shadow-soft backdrop-blur">
             <TicketPercent className="size-3.5" />
@@ -195,9 +195,9 @@ export default async function HomePage() {
                 utan att leta.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Handplockade rabatter, rabattkoder och kampanjer från svenska
-                butiker – enkla att jämföra. Mindre brus, tydligare val och bara
-                erbjudanden som faktiskt är värda att klicka på.
+                Rabatter, rabattkoder och kampanjer från svenska butiker – enkla
+                att jämföra. Mindre brus, tydligare val och en ranking där
+                provision inte ger extra poäng.
               </p>
             </div>
 
@@ -287,7 +287,7 @@ export default async function HomePage() {
                 Högst Deal Score
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Braerbjudandens ranking – sponsring höjer inte poängen.
+                Braerbjudandens ranking – sponsring och provision höjer inte poängen.
               </p>
             </div>
             <Button variant="outline" asChild>
@@ -309,7 +309,7 @@ export default async function HomePage() {
               Utvalda erbjudanden just nu
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Handplockade av redaktionen. Betalda placeringar märks separat som
+              Utvalda av redaktionen. Betalda placeringar märks separat som
               sponsrade.
             </p>
           </div>

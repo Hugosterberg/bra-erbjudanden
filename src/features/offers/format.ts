@@ -1,25 +1,56 @@
-import type { DiscountType, OfferWithRelations, RedemptionType } from "./types";
+import { detectNetworkFromUrl } from "../tracking/click-reference.ts";
+import type { Offer, OfferWithRelations, RedemptionType } from "./types";
 
-export function formatDiscount(type: DiscountType, value: number) {
-  if (type === "percentage") {
-    return `${Math.round(value)}%`;
+type OfferDeal = Pick<Offer, "discount_type" | "discount_value" | "is_up_to" | "deal_label">;
+
+/** "20%", "150 kr", "Fri frakt" or "Kampanj": never a figure the feed lacks. */
+export function formatDealValue(offer: OfferDeal) {
+  if (offer.discount_type === null || offer.discount_value === null) {
+    return offer.deal_label ?? "Kampanj";
   }
 
-  return `${Math.round(value)} kr`;
+  const value = Math.round(offer.discount_value);
+  return offer.discount_type === "percentage" ? `${value}%` : `${value} kr`;
+}
+
+/** Headline shown beside the call to action. */
+export function formatDealHeadline(offer: OfferDeal) {
+  if (offer.discount_type === null || offer.discount_value === null) {
+    return offer.deal_label ?? "Aktuell kampanj";
+  }
+
+  return `Spara ${offer.is_up_to ? "upp till " : ""}${formatDealValue(offer)}`;
+}
+
+export function hasNumericDiscount(offer: OfferDeal) {
+  return offer.discount_type !== null && offer.discount_value !== null;
+}
+
+/** Whether following the offer can earn us money and must be marked as such. */
+export function isCommercialLink(
+  offer: Pick<Offer, "affiliate_network" | "affiliate_url" | "is_sponsored">,
+) {
+  return (
+    offer.is_sponsored ||
+    offer.affiliate_network !== null ||
+    detectNetworkFromUrl(offer.affiliate_url) !== null
+  );
 }
 
 // Ranks offers by discount magnitude. Percentage discounts are prioritised
 // over fixed amounts since they are comparable across price points; within the
 // same type the higher value wins.
-export function compareByDiscount(a: OfferWithRelations, b: OfferWithRelations) {
-  const aIsPercentage = a.discount_type === "percentage";
-  const bIsPercentage = b.discount_type === "percentage";
+export function compareByDiscount(
+  a: Pick<Offer, "discount_type" | "discount_value">,
+  b: Pick<Offer, "discount_type" | "discount_value">,
+) {
+  const weight = (type: Offer["discount_type"]) =>
+    type === "percentage" ? 0 : type === "fixed_amount" ? 1 : 2;
 
-  if (aIsPercentage !== bIsPercentage) {
-    return aIsPercentage ? -1 : 1;
-  }
-
-  return b.discount_value - a.discount_value;
+  return (
+    weight(a.discount_type) - weight(b.discount_type) ||
+    (b.discount_value ?? 0) - (a.discount_value ?? 0)
+  );
 }
 
 export function formatPrice(value: number) {

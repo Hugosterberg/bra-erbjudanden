@@ -21,8 +21,15 @@ export const siteConfig = {
   tagline: "Bra erbjudanden, rabattkoder och kampanjer i Sverige",
   url: normalizeSiteUrl(resolveSiteUrl()),
   description:
-    "Hitta bra erbjudanden, rabatter och rabattkoder från svenska butiker. Handplockade kampanjer och deals – alltid aktiva, aldrig utgångna.",
+    "Hitta bra erbjudanden, rabatter och rabattkoder från svenska butiker, rankade öppet och med giltighetstid på varje erbjudande.",
   contactEmail: "hello@braerbjudanden.se",
+  // Required on the site by lagen om elektronisk handel (8 §). Set in the
+  // environment, because they must never be invented.
+  company: {
+    name: process.env.NEXT_PUBLIC_COMPANY_NAME?.trim() || null,
+    organizationNumber: process.env.NEXT_PUBLIC_COMPANY_ORG_NUMBER?.trim() || null,
+    address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS?.trim() || null,
+  },
   locale: "sv_SE",
   keywords: [
     "bra erbjudanden",

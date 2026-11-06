@@ -3,14 +3,18 @@ import type { MetadataRoute } from "next";
 import { findActiveCategories } from "@/features/categories/queries";
 import { findPublishedArticles } from "@/features/editorial/queries";
 import { articlePublicPath } from "@/features/editorial/types";
-import { findActiveOffers } from "@/features/offers/queries";
+import { findActiveOfferSummaries } from "@/features/offers/queries";
+import { SEASONAL_PAGE_PATHS } from "@/features/seasonal/pages";
 import { findActiveStores } from "@/features/stores/queries";
 import { hasIndexableContent } from "@/shared/lib/indexing";
 import { createAbsoluteUrl } from "@/shared/lib/seo";
 
+// Without this the sitemap is frozen at build time and new stores never appear.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [offers, stores, categories, articles] = await Promise.all([
-    findActiveOffers(),
+    findActiveOfferSummaries(),
     findActiveStores(),
     findActiveCategories(),
     findPublishedArticles(),
@@ -19,11 +23,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const offersByStore = new Map<string, number>();
   const offersByCategory = new Map<string, number>();
   for (const offer of offers) {
-    if (offer.store?.id) {
-      offersByStore.set(offer.store.id, (offersByStore.get(offer.store.id) ?? 0) + 1);
-    }
-    if (offer.category?.id) {
-      offersByCategory.set(offer.category.id, (offersByCategory.get(offer.category.id) ?? 0) + 1);
+    offersByStore.set(offer.store_id, (offersByStore.get(offer.store_id) ?? 0) + 1);
+    if (offer.category_id) {
+      offersByCategory.set(offer.category_id, (offersByCategory.get(offer.category_id) ?? 0) + 1);
     }
   }
 
@@ -60,6 +62,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
+  // Must match each page's robots rule: an empty list page is noindex.
+  const hasArticleOfType = (type: string) => articles.some((item) => item.article_type === type);
+
   const staticRoutes: MetadataRoute.Sitemap = [
     "/",
     "/erbjudanden",
@@ -67,10 +72,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/kampanjer",
     "/butiker",
     "/kategorier",
-    "/bast-i-test",
-    "/guider",
-    "/recensioner",
+    ...SEASONAL_PAGE_PATHS,
+    ...(hasArticleOfType("best_in_test") ? ["/bast-i-test"] : []),
+    ...(hasArticleOfType("guide") ? ["/guider"] : []),
+    ...(hasArticleOfType("review") ? ["/recensioner"] : []),
     "/partner",
+    "/om-oss",
+    "/integritetspolicy",
     "/affiliatedisclosure",
   ].map((path, index) => ({
     url: createAbsoluteUrl(path),
@@ -81,7 +89,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticRoutes,
-    ...offers.map((offer) => ({
+    // Feed offers are noindex, so only original offer pages are advertised.
+    ...offers.filter((offer) => !offer.is_imported || offer.is_import_locked).map((offer) => ({
       url: createAbsoluteUrl(`/erbjudanden/${offer.slug}`),
       lastModified: new Date(offer.updated_at),
       changeFrequency: "daily" as const,

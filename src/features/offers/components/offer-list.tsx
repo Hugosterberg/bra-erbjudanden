@@ -1,20 +1,16 @@
 import Link from "next/link";
-import { ArrowUpRight, Store, Timer } from "lucide-react";
+import { Store, Timer } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { scoreOffer } from "@/features/deal-score/from-offer";
 import { StoreLogo } from "@/shared/ui/store-logo";
 
 import { CouponCodeCopyButton } from "./coupon-code-copy-button";
+import { OfferCta } from "./offer-cta";
 import { OfferDiscountBadge } from "./offer-discount-badge";
 import { OfferMedia } from "./offer-media";
 import { OfferStatusBadges } from "./offer-status-badges";
 import { OfferTerms } from "./offer-terms";
-import {
-  formatDiscount,
-  formatOfferCtaLabel,
-  formatOfferValidity,
-} from "../format";
+import { formatDealValue, formatOfferValidity, hasNumericDiscount } from "../format";
 import type { OfferHeadingLevel, OfferWithRelations } from "../types";
 
 export function OfferList({
@@ -57,7 +53,8 @@ export function OfferList({
             <OfferMedia
               imageUrl={offer.image_url}
               title={offer.title}
-              discountLabel={formatDiscount(offer.discount_type, offer.discount_value)}
+              discountLabel={formatDealValue(offer)}
+              showDiscountCaption={hasNumericDiscount(offer)}
               className="h-36 w-full"
               chipTextClassName="text-2xl"
             />
@@ -100,8 +97,7 @@ export function OfferList({
                 <OfferStatusBadges offer={offer} score={score} />
               </div>
               <OfferDiscountBadge
-                discountType={offer.discount_type}
-                discountValue={offer.discount_value}
+            offer={offer}
                 className="my-1.5 w-full"
               />
               {offer.discount_code ? (
@@ -111,12 +107,7 @@ export function OfferList({
                   className="w-full"
                 />
               ) : null}
-              <Button asChild className="h-auto w-full whitespace-normal py-2 text-center leading-tight">
-                <Link href={`/go/${offer.id}`} rel="sponsored nofollow">
-                  {formatOfferCtaLabel(offer)}
-                  <ArrowUpRight className="size-4 shrink-0" />
-                </Link>
-              </Button>
+              <OfferCta offer={offer} />
             </div>
           </li>
           );

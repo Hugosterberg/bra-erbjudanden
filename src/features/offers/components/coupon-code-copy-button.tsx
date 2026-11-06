@@ -6,6 +6,8 @@ import { Check, Copy } from "lucide-react";
 import { recordCouponCopyAction } from "@/features/tracking/actions";
 import { cn } from "@/lib/utils";
 
+import { copyTextToClipboard } from "../copy-code";
+
 type CouponCodeCopyButtonProps = {
   code: string;
   offerId: string;
@@ -107,21 +109,8 @@ export function CouponCodeCopyButton({
   }, [copied]);
 
   async function copyCode() {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-    } catch {
-      const textArea = document.createElement("textarea");
-      textArea.value = code;
-      textArea.setAttribute("readonly", "");
-      textArea.style.position = "fixed";
-      textArea.style.opacity = "0";
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-      setCopied(true);
-    }
+    await copyTextToClipboard(code);
+    setCopied(true);
 
     // Fire-and-forget: tracking must never block or break the copy UX.
     void recordCouponCopyAction(offerId).catch(() => {});

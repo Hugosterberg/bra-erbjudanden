@@ -3,7 +3,9 @@ import { cache } from "react";
 import { findActiveCategoryBySlug } from "@/features/categories/queries";
 import { findActiveStoreBySlug } from "@/features/stores/queries";
 import type { AffiliateNetwork } from "@/features/affiliate-import/types";
+import { currentMarket } from "@/shared/config/market";
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
+import { fetchAllPages } from "@/shared/lib/supabase/fetch-all-pages";
 import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
 
 import type { OfferRedirectTarget, OfferWithRelations } from "./types";
@@ -18,10 +20,13 @@ function mapOfferRelations(data: unknown[] | null): OfferWithRelations[] {
   return (data ?? []) as OfferWithRelations[];
 }
 
-function applyActiveDateWindow<T extends { or: (filters: string) => T }>(query: T) {
+function applyActiveDateWindow<
+  T extends { or: (filters: string) => T; eq: (column: "market", value: string) => T },
+>(query: T) {
   const now = new Date().toISOString();
 
   return query
+    .eq("market", currentMarket.code)
     .or(`starts_at.is.null,starts_at.lte.${now}`)
     .or(`ends_at.is.null,ends_at.gte.${now}`);
 }
@@ -94,7 +99,8 @@ const findActiveOffersByKey = cache(async (key: string) => {
   )
     .order("is_featured", { ascending: false })
     .order("rank_position", { ascending: true })
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: true });
 
   const storeId = store?.id ?? options.storeId;
   if (storeId) {
@@ -111,13 +117,78 @@ const findActiveOffersByKey = cache(async (key: string) => {
   }
 
   if (options.limit) {
-    query = query.limit(options.limit);
+    const { data } = await query.limit(options.limit);
+    return mapOfferRelations(data);
   }
 
-  const { data } = await query;
-
-  return mapOfferRelations(data);
+  try {
+    return await fetchAllPages<OfferWithRelations>((from, to) => query.range(from, to));
+  } catch (error) {
+    console.error("[offers] Could not list active offers", error);
+    return [];
+  }
 });
+
+export type OfferSummary = Pick<
+  OfferWithRelations,
+  | "id"
+  | "slug"
+  | "store_id"
+  | "category_id"
+  | "discount_code"
+  | "is_imported"
+  | "is_import_locked"
+  | "updated_at"
+>;
+
+/**
+ * Light list for counts and the sitemap. Those need every active offer but
+ * only a few columns, and loading full rows made the start page very slow.
+ */
+export const findActiveOfferSummaries = cache(async (): Promise<OfferSummary[]> => {
+  const supabase = getSupabasePublicClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const query = applyActiveDateWindow(
+    supabase
+      .from("offers")
+      .select("id, slug, store_id, category_id, discount_code, is_imported, is_import_locked, updated_at")
+      .eq("status", "published"),
+  ).order("id", { ascending: true });
+
+  try {
+    return await fetchAllPages<OfferSummary>((from, to) => query.range(from, to));
+  } catch (error) {
+    console.error("[offers] Could not list offer summaries", error);
+    return [];
+  }
+});
+
+/**
+ * RLS hides expired and archived offers from the public client, so old URLs are
+ * resolved server-side. Links and rankings are kept by moving them to the store.
+ */
+export async function findEndedOfferRedirect(slug: string) {
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("offers")
+    .select("status, store:stores(slug, status)")
+    .eq("slug", slug)
+    .neq("status", "draft")
+    .maybeSingle();
+
+  const store = data?.store as { slug: string; status: string } | null | undefined;
+
+  return store?.status === "active" ? `/butiker/${store.slug}` : data ? "/erbjudanden" : null;
+}
 
 export async function findActiveOfferBySlug(slug: string) {
   const supabase = getSupabasePublicClient();
@@ -147,7 +218,7 @@ export async function findOfferRedirectTarget(id: string): Promise<OfferRedirect
   const { data } = await applyActiveDateWindow(
     supabase
       .from("offers")
-      .select("id, affiliate_url, store_id, status, starts_at, ends_at")
+      .select("id, affiliate_url, affiliate_network, store_id, status, starts_at, ends_at")
       .eq("id", id)
       .eq("status", "published"),
   ).single();
@@ -186,7 +257,9 @@ export async function findAdminOffers(options: {
     query = query.eq("is_imported", false);
   }
 
-  const { data: offers } = await query;
+  const offers = await fetchAllPages<OfferWithRelations>((from, to) =>
+    query.order("id", { ascending: true }).range(from, to),
+  );
 
   const { data: clickTotals } = await supabase.rpc("count_offer_clicks_by_type");
 
@@ -198,7 +271,7 @@ export async function findAdminOffers(options: {
     target.set(row.offer_id, Number(row.click_count));
   }
 
-  return mapOfferRelations(offers).map((offer) => {
+  return offers.map((offer) => {
     const websiteClicks = websiteCounts.get(offer.id) ?? 0;
     const codeClicks = codeCounts.get(offer.id) ?? 0;
 
