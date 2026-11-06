@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 
 import { getSupabaseAdminClient } from "@/shared/lib/supabase/admin";
-import { getSupabasePublicClient } from "@/shared/lib/supabase/public";
 import type { Database } from "@/shared/types/database";
 
 type DiscoveryEventType = Database["public"]["Enums"]["discovery_event_type"];
@@ -17,12 +16,19 @@ function hashIp(ip: string | null) {
   return createHash("sha256").update(`${salt}:event:${ip}`).digest("hex");
 }
 
-export async function recordDiscoveryEvent(input: {
-  eventType: DiscoveryEventType;
-  entityType?: string;
-  entityId?: string;
-  metadata?: Record<string, string | number | boolean | null>;
-}) {
+/**
+ * Pass requestHeaders when calling from after() during page rendering, where
+ * reading headers() is not allowed and would silently lose the event.
+ */
+export async function recordDiscoveryEvent(
+  input: {
+    eventType: DiscoveryEventType;
+    entityType?: string;
+    entityId?: string;
+    metadata?: Record<string, string | number | boolean | null>;
+  },
+  requestHeaders?: Pick<Headers, "get">,
+) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
     return;
@@ -30,7 +36,7 @@ export async function recordDiscoveryEvent(input: {
 
   // Analytics must never take a page or a form submission down with it.
   try {
-    const headerStore = await headers();
+    const headerStore = requestHeaders ?? (await headers());
     const forwardedFor = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
     const realIp = headerStore.get("x-real-ip");
 
@@ -55,7 +61,8 @@ export function daysAgo(days: number) {
 // Click counts are aggregated in Postgres. Selecting the raw rows would be
 // capped by the PostgREST row limit and silently under-report popularity.
 export async function countOfferClicksSince(since: Date) {
-  const supabase = getSupabasePublicClient();
+  // Read with the service role: click volumes are not public information.
+  const supabase = getSupabaseAdminClient();
   if (!supabase) {
     return new Map<string, number>();
   }
@@ -68,7 +75,8 @@ export async function countOfferClicksSince(since: Date) {
 }
 
 export async function countStoreClicksSince(since: Date) {
-  const supabase = getSupabasePublicClient();
+  // Read with the service role: click volumes are not public information.
+  const supabase = getSupabaseAdminClient();
   if (!supabase) {
     return new Map<string, number>();
   }

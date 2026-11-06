@@ -1,28 +1,41 @@
 import { redirect } from "next/navigation";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-import { findActiveStoreBySlug } from "@/features/stores/queries";
 import { resolveStoreOutboundUrl } from "@/features/stores/outbound";
-import { recordDiscoveryEvent } from "@/features/tracking/discovery-events";
+import { findActiveStoreBySlug } from "@/features/stores/queries";
+import { trackOutboundClick } from "@/features/tracking/record-click";
+import { isPrefetchRequest } from "@/features/tracking/request-classification";
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store",
+  "X-Robots-Tag": "noindex, nofollow",
+};
 
 type StoreRedirectProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function GET(_request: NextRequest, { params }: StoreRedirectProps) {
+export async function GET(request: NextRequest, { params }: StoreRedirectProps) {
+  if (isPrefetchRequest(request.method, request.headers)) {
+    return new NextResponse(null, { status: 204, headers: NO_STORE_HEADERS });
+  }
+
   const { slug } = await params;
   const store = await findActiveStoreBySlug(slug);
-  const destination = store ? resolveStoreOutboundUrl(store) : null;
+  const url = store ? resolveStoreOutboundUrl(store) : null;
 
-  if (!store || !destination) {
+  if (!store || !url) {
     redirect("/butiker");
   }
 
-  await recordDiscoveryEvent({
-    eventType: "affiliate_click",
+  const destination = trackOutboundClick({
+    url,
+    knownNetwork: null,
+    offerId: null,
+    storeId: store.id,
     entityType: "store",
-    entityId: store.id,
+    headers: request.headers,
   });
 
-  redirect(destination);
+  return NextResponse.redirect(destination, { status: 302, headers: NO_STORE_HEADERS });
 }

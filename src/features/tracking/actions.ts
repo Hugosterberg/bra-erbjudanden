@@ -1,5 +1,7 @@
 "use server";
 
+import { headers } from "next/headers";
+
 import { recordCouponCopyClick } from "./record-click";
 import { recordDiscoveryEvent } from "./discovery-events";
 
@@ -8,7 +10,7 @@ export async function recordCouponCopyAction(offerId: string) {
     return;
   }
 
-  await recordCouponCopyClick(offerId);
+  await recordCouponCopyClick(offerId, await headers());
   await recordDiscoveryEvent({
     eventType: "coupon_copy",
     entityType: "offer",
