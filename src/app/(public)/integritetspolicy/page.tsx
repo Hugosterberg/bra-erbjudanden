@@ -26,6 +26,14 @@ const sections = [
     body: [
       "När du klickar vidare till en butik sparar vi tidpunkt, vilket erbjudande det gäller, sidan du kom från, din webbläsares user-agent och ett saltat hashvärde av din IP-adress. Vi skapar också ett slumpmässigt klick-id som följer med till affiliatenätverket, så att vi kan se vilket erbjudande ett köp kom från utan att veta vem du är.",
       "Den rättsliga grunden är vårt berättigade intresse av att mäta sajten, förhindra missbruk och kunna redovisa provision. Ett hashvärde av en IP-adress kan fortfarande vara en personuppgift, och därför tar vi upp det här.",
+      "Efter 90 dagar tar vi bort hashvärdet och user-agent från klicket. Själva klicket sparas sedan utan dem, eftersom vi behöver det för att stämma av provision.",
+    ],
+  },
+  {
+    title: "Sidvisningar, sökningar och omdömen",
+    body: [
+      "Vi mäter också visningar av erbjudanden, kopierade rabattkoder och vad som söks på sajten, tillsammans med ett saltat hashvärde av IP-adressen. Skriv därför inga personuppgifter i sökrutan. Hashvärdet tas bort efter 90 dagar och händelserna raderas efter 13 månader. Den rättsliga grunden är vårt berättigade intresse av att förbättra sajten.",
+      "Om du svarar på om en rabattkod fungerade sparar vi svaret med ett saltat hashvärde av IP-adressen, så att varje besökare bara räknas en gång per kod. Svaret sparas så länge erbjudandet finns kvar.",
     ],
   },
   {
@@ -38,6 +46,7 @@ const sections = [
     title: "Cookies och statistik",
     body: [
       "Vi sätter inga cookies för reklam på den här sajten. Vi sparar ditt val av ljust eller mörkt läge i en cookie, och administratörer har en inloggningscookie. Besöksstatistik samlas in med Vercel Web Analytics, som enligt leverantören fungerar utan cookies och utan att identifiera enskilda besökare.",
+      "Butikslogotyper från affiliatenätverk kan laddas direkt från nätverkets eller butikens server, som då ser din IP-adress på samma sätt som vid vilken bild på webben som helst.",
     ],
   },
   {

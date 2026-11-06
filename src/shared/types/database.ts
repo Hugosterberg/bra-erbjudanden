@@ -609,6 +609,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      purge_tracking_data: {
+        Args: { p_identifier_days: number; p_event_days: number };
+        Returns: {
+          clicks_anonymized: number;
+          events_anonymized: number;
+          events_deleted: number;
+        }[];
+      };
       consume_rate_limit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
